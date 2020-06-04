@@ -1,0 +1,33 @@
+{
+  "name": "asy-balance-executor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "LGPL-3.0-or-later",
+  "devDependencies": {
+    "@types/bluebird": "^3.5.30",
+    "@types/lodash": "^4.14.151",
+    "@types/node": "^14.0.1",
+    "@types/validator": "^13.0.0",
+    "ts-node-dev": "^1.0.0-pre.43",
+    "typescript": "^3.9.0"
+  },
+  "scripts": {
+    "tsc": "tsc",
+    "prepare": "tsc --sourceMap false -d true",
+    "devit": "ts-node-dev --respawn --transpileOnly",
+    "dev": "ts-node-dev --respawn --transpileOnly ./app/app.ts",
+    "prod": "tsc && node ./build/app/app.js",
+    "debug": "tsc && node --inspect-brk ./build/app/app.js",
+    "debugit": "tsc && node --inspect-brk"
+  },
+  "dependencies": {
+    "asy-balance-core": "https://github.com/dukei/asy-balance-core.git#master",
+    "lodash": "^4.17.15",
+    "log4js": "^6.2.1",
+    "mysql2": "^2.1.0",
+    "reflect-metadata": "^0.1.13",
+    "sequelize": "^5.21.9",
+    "sequelize-typescript": "^1.1.0",
+    "sleep-promise": "^8.0.1"
+  }
+}
