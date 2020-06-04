@@ -1,7 +1,8 @@
 {
   "name": "asy-balance-executor",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "license": "LGPL-3.0-or-later",
   "devDependencies": {
     "@types/bluebird": "^3.5.30",
