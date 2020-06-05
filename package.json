@@ -22,7 +22,7 @@
     "debugit": "tsc && node --inspect-brk"
   },
   "dependencies": {
-    "asy-balance-core": "https://github.com/dukei/asy-balance-core.git#master",
+    "asy-balance-core": "https://dukei@github.com/dukei/asy-balance-core.git#master",
     "lodash": "^4.17.15",
     "log4js": "^6.2.1",
     "mariadb": "^2.4.0",
