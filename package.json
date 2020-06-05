@@ -25,6 +25,7 @@
     "asy-balance-core": "https://github.com/dukei/asy-balance-core.git#master",
     "lodash": "^4.17.15",
     "log4js": "^6.2.1",
+    "mariadb": "^2.4.0",
     "mysql2": "^2.1.0",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^5.21.9",

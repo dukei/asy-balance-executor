@@ -1,9 +1,4 @@
 import {Sequelize} from "sequelize-typescript";
-import Account from "../models/Account";
-import Execution from "../models/Execution";
-import Provider from "../models/Provider";
-import ExecutionLog from "../models/ExecutionLog";
-import ProviderDB from "./ProviderDB";
 
 export type AsyBalanceExecutorConfig = {
     connection_string: string
@@ -40,9 +35,4 @@ export default class AsyBalanceExecutor{
 
         return AsyBalanceExecutor.instance;
     }
-
-    public static readonly Models = {
-        Account, Execution, Provider, ExecutionLog
-    };
-    public static readonly Provider = ProviderDB;
 }
