@@ -96,7 +96,7 @@ assert-plus@1.0.0, assert-plus@^1.0.0:
 
 "asy-balance-core@https://github.com/dukei/asy-balance-core.git#master":
   version "1.0.0"
-  resolved "https://github.com/dukei/asy-balance-core.git#a00a3d28ba2562bd6615b28ee6c49124afce08a0"
+  resolved "https://github.com/dukei/asy-balance-core.git#d8cbb3ca83e4e6ecd0d2c08234cc6c8645db71d3"
   dependencies:
     adm-zip "^0.4.14"
     base64-arraybuffer "^0.2.0"
