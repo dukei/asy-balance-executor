@@ -1,4 +1,5 @@
 import {Sequelize} from "sequelize-typescript";
+import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
 
 export type AsyBalanceExecutorConfig = {
     connection_string: string
@@ -34,5 +35,9 @@ export default class AsyBalanceExecutor{
         }
 
         return AsyBalanceExecutor.instance;
+    }
+
+    public async enterCode(codeId: string, code: string): Promise<void>{
+        await AsyBalanceDBStorageImpl.resolveCode(codeId, code);
     }
 }

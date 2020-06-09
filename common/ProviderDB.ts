@@ -2,8 +2,8 @@ import Account from "../models/Account";
 import Provider from "../models/Provider";
 import log from "./log";
 import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
-import Execution from "../models/Execution";
-import { AsyBalanceProvider, AsyBalanceResult, AsyBalanceResultError } from "asy-balance-core";
+import Execution, {ExecutionStatus} from "../models/Execution";
+import {AsyBalanceProvider, AsyBalanceResult, AsyBalanceResultError} from "asy-balance-core";
 import SingleInit from "./SingleInit";
 
 
@@ -59,7 +59,7 @@ export default class ProviderDB{
 
         let stimpl = new AsyBalanceDBStorageImpl('' + acc.id);
         let exec = Execution.build({
-            status: 'INPROGRESS',
+            status: ExecutionStatus.INPROGRESS,
             prefs: JSON.stringify(prefs, null, '  '),
             accountId: acc.id
         });
@@ -76,15 +76,16 @@ export default class ProviderDB{
                 apiTrace: stimpl,
                 apiStorage: stimpl,
                 apiResult: stimpl,
+                apiRetrieve: stimpl,
                 proxy: prefs.proxy
             })
 
-            exec.status = "SUCCESS";
+            exec.status = ExecutionStatus.SUCCESS;
             log.info("Account " + this.accId + " finished successfully!");
         }catch(e){
             log.error("Account " + this.accId + " execution error: " + e.stack);
 
-            exec.status = "ERROR";
+            exec.status = ExecutionStatus.ERROR;
             const res: AsyBalanceResultError = {
                 error: true,
                 e: e as Error,

@@ -1,21 +1,30 @@
 import {
-    Table,
+    AllowNull,
+    BelongsTo,
     Column,
-    Model,
+    CreatedAt,
     DataType,
     ForeignKey,
-    PrimaryKey,
-    UpdatedAt,
-    CreatedAt, AllowNull, BelongsTo
+    Model,
+    Table,
+    UpdatedAt
 } from 'sequelize-typescript';
 import Provider from "./Provider";
-import Execution from "./Execution";
+import Execution, {ExecutionStatus} from "./Execution";
 
 @Table({tableName: 'ab_accounts'})
 export default class Account extends Model<Account> {
     @ForeignKey(() => Provider)
     @Column
     providerId!: number;
+
+    @AllowNull
+    @Column
+    userId?: string;
+
+    @AllowNull
+    @Column
+    name?: string;
 
     @BelongsTo(() => Provider)
     provider!: Provider;
@@ -35,8 +44,16 @@ export default class Account extends Model<Account> {
     updatedAt!: Date;
 
     @AllowNull
-    @Column(DataType.ENUM('INPROGRESS', 'SUCCESS', 'ERROR'))
-    lastStatus!: 'INPROGRESS'|'SUCCESS'|'ERROR'
+    @Column(DataType.ENUM(ExecutionStatus.IDLE, ExecutionStatus.INPROGRESS, ExecutionStatus.SUCCESS, ExecutionStatus.SUCCESS_PARTIAL, ExecutionStatus.ERROR))
+    lastStatus!: ExecutionStatus
+
+    @AllowNull
+    @Column
+    lastResult?: string;
+
+    @AllowNull
+    @Column
+    lastResultTime?: Date;
 
     @Column
     savedData!: string;
