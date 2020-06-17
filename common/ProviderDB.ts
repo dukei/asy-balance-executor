@@ -46,7 +46,7 @@ export default class ProviderDB{
         return prov;
     }
 
-    public async execute(): Promise<AsyBalanceResult[]>{
+    public async execute(task?: string): Promise<AsyBalanceResult[]>{
         log.info('About to execute account ' + this.accId);
 
         const [prov, acc] = await Promise.all([
@@ -56,6 +56,7 @@ export default class ProviderDB{
 
         const prefs = acc.prefs ? JSON.parse(acc.prefs) : {};
         prefs.proxy = acc.proxy || undefined;
+        prefs.__task = task;
 
         let stimpl = new AsyBalanceDBStorageImpl('' + acc.id);
         let exec = Execution.build({
@@ -66,11 +67,12 @@ export default class ProviderDB{
 
         await exec.save();
 
-        log.info('Starting account ' + this.accId + ' provider ' + acc.provider.type);
+        log.info('Starting account ' + this.accId + '(task: ' + task + ') provider ' + acc.provider.type);
         let result: AsyBalanceResult[] = [];
 
         try {
             result = await prov.execute({
+                task: task,
                 accId: '' + this.accId,
                 preferences: prefs,
                 apiTrace: stimpl,
