@@ -28,6 +28,10 @@ export default class Execution extends Model<Execution> {
     @Column(DataType.ENUM(ExecutionStatus.INPROGRESS, ExecutionStatus.SUCCESS, ExecutionStatus.SUCCESS_PARTIAL, ExecutionStatus.ERROR))
     status!: ExecutionStatus
 
+    @AllowNull
+    @Column
+    task!: string
+
     @CreatedAt
     @Column
     createdAt!: Date

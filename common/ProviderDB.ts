@@ -60,6 +60,7 @@ export default class ProviderDB{
 
         let stimpl = new AsyBalanceDBStorageImpl('' + acc.id);
         let exec = Execution.build({
+            task: task,
             status: ExecutionStatus.INPROGRESS,
             prefs: JSON.stringify(prefs, null, '  '),
             accountId: acc.id
