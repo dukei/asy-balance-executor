@@ -4,13 +4,14 @@ import {
     Column,
     CreatedAt,
     DataType,
-    ForeignKey,
+    ForeignKey, HasMany,
     Model,
     Table,
     UpdatedAt
 } from 'sequelize-typescript';
 import Provider from "./Provider";
 import Execution, {ExecutionStatus} from "./Execution";
+import AccountTask from "./AccountTask";
 
 @Table({tableName: 'ab_accounts'})
 export default class Account extends Model<Account> {
@@ -43,17 +44,8 @@ export default class Account extends Model<Account> {
     @UpdatedAt
     updatedAt!: Date;
 
-    @AllowNull
-    @Column(DataType.ENUM(ExecutionStatus.IDLE, ExecutionStatus.INPROGRESS, ExecutionStatus.SUCCESS, ExecutionStatus.SUCCESS_PARTIAL, ExecutionStatus.ERROR))
-    lastStatus!: ExecutionStatus
-
-    @AllowNull
-    @Column
-    lastResult?: string;
-
-    @AllowNull
-    @Column
-    lastResultTime?: Date;
+    @HasMany(() => AccountTask, 'account_id')
+    tasks!: AccountTask[]
 
     @Column
     savedData!: string;

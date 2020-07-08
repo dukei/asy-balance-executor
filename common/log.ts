@@ -1,4 +1,4 @@
-﻿import {Log4js} from "log4js";
+﻿import {Log4js, Logger} from "log4js";
 
 const log4js: Log4js = require('log4js');
 log4js.configure({
@@ -9,5 +9,5 @@ log4js.configure({
     categories: { default: { appenders: ['def','err'], level: 'trace' } }
 });
 
-const log = log4js.getLogger("ab");
+const log: Logger = log4js.getLogger("ab");
 export default log;

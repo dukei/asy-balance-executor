@@ -12,6 +12,7 @@ import {
     AsyRetrieveType,
 } from "asy-balance-core";
 import Code from "../../models/Code";
+import SingleInit from "../../common/SingleInit";
 
 type DeferredCode = {
     resolve?: (code?: string) => void,
@@ -20,11 +21,12 @@ type DeferredCode = {
 }
 
 export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageApi, AsyBalanceInnerTraceApi, AsyBalanceInnerResultApi, AsyBalanceInnerRetrieveApi{
-    private accPromise?: Promise<Account>;
-    private account?: Account;
+    private acc: SingleInit<Account>;
     private static codePromises: {[id: string]: DeferredCode} = {};
 
-    constructor(private accId: string){}
+    constructor(private exec: Execution, acc?: Account){
+        this.acc = new SingleInit<Account>({value: acc});
+    }
 
     async retrieveCode(options: string | AsyRetrieveOptions): Promise<StringCallResponse<string>> {
         const acc = await this.getAccount();
@@ -84,20 +86,14 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
     }
 
     private async getAccount(): Promise<Account>{
-        if(this.account)
-            return this.account;
-
-        if(!this.accPromise)
-            this.accPromise = Account.findOne({include: [Execution], attributes: ['id', 'savedData', 'executionId'], where: {id: this.accId}});
-        let acc = await this.accPromise;
-
-        if(!acc)
-            throw new Error('Account ' + this.accId + ' does not exist!');
-
-        if(!acc.execution)
-            throw new Error('Account ' + this.accId + ' is not being executed!');
-
-        this.account = acc;
+        const acc = await this.acc.get({
+            getT: async (): Promise<Account> => {
+                let acc = await Account.findOne({where: {id: this.exec.accountId}});
+                if(!acc)
+                    throw new Error('Can not find account by execution: ' + this.exec.accountId);
+                return acc;
+            }
+        });
 
         return acc;
     }
@@ -119,20 +115,17 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
         try {
             console.log(data);
 
-            let acc = await this.getAccount();
-            if(typeof data === 'string')
-                data = JSON.parse(data);
+            if(typeof data !== 'string')
+                data = JSON.stringify(data);
 
-            if(acc.execution.result){
-                let res = JSON.parse(acc.execution.result);
-                let resArr = Array.isArray(res) ? res : [res];
-                resArr.push(data);
-                acc.execution.result = JSON.stringify(resArr, null, '  ');
+            const curResults = this.exec.result;
+            if(curResults){
+                this.exec.result = curResults.replace(/\]$/, ',' + data + ']');
             }else{
-                acc.execution.result = JSON.stringify(data, null, '  ');
+                this.exec.result = '[' + data + ']';
             }
 
-            await acc.execution.save();
+            await this.exec.save();
 
             return {payload: undefined};
         }catch(e){
@@ -142,14 +135,12 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
     }
 
     async trace(msg: string, callee: string): Promise<StringCallResponse<void>> {
-        let acc = await this.getAccount();
-
         const message = (callee ? `[${callee}] ` : '') + msg;
-        console.log("acc" + acc.id + ": " + message);
+        console.log("acc" + this.exec.accountId + " (" + this.exec.task + "): " + message);
 
         let elog = ExecutionLog.build({
             content: message,
-            executionId: acc.execution.id
+            executionId: this.exec.id
         });
         await elog.save();
 
