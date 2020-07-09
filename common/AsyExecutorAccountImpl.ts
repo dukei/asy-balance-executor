@@ -217,7 +217,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
             if(masked.length !== 0){
                 const _p: AsyBalancePreferences = {};
                 for(let p in prefsTo){
-                    if(masked.indexOf(p) >= 0){
+                    if(masked.indexOf(p) >= 0 && prefsTo[p] === PASSWORD_PLACEHOLDER){
                         _p[p] = prefs[p];
                     }else{
                         _p[p] = prefsTo[p];

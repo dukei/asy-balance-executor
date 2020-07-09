@@ -1,5 +1,5 @@
 import {
-    AllowNull, BelongsToMany,
+    AllowNull, BelongsTo, BelongsToMany,
     Column,
     CreatedAt,
     DataType,
@@ -51,9 +51,9 @@ export default class Execution extends Model<Execution> {
     @Column(DataType.TEXT)
     result!: string
 
-    @HasOne(() => Account)
+    @BelongsTo(() => Account)
     account!: Account;
 
-    @HasMany(() => Code, "executionId")
+    @HasMany(() => Code, "execution_id")
     codes!: Code[]
 }

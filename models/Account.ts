@@ -10,7 +10,6 @@ import {
     UpdatedAt
 } from 'sequelize-typescript';
 import Provider from "./Provider";
-import Execution, {ExecutionStatus} from "./Execution";
 import AccountTask from "./AccountTask";
 
 @Table({tableName: 'ab_accounts'})
@@ -29,14 +28,6 @@ export default class Account extends Model<Account> {
 
     @BelongsTo(() => Provider)
     provider!: Provider;
-
-    @ForeignKey(() => Execution)
-    @AllowNull
-    @Column
-    executionId!: number;
-
-    @BelongsTo(() => Execution)
-    execution!: Execution;
 
     @CreatedAt
     createdAt!: Date;

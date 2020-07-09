@@ -29,8 +29,6 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
     }
 
     async retrieveCode(options: string | AsyRetrieveOptions): Promise<StringCallResponse<string>> {
-        const acc = await this.getAccount();
-
         let _options: AsyRetrieveOptions;
         if(typeof(options) === 'string')
             _options = JSON.parse(options);
@@ -44,7 +42,7 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
         const timeout = _options.time = _options.time || 60000;
 
         const code = await Code.create({
-            executionId: acc.executionId,
+            executionId: this.exec.id,
             till: new Date(+new Date() + timeout),
             params: JSON.stringify(_options, null, '  ')
         });
