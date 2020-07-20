@@ -59,4 +59,7 @@ export default class AccountTask extends Model<AccountTask> {
 
     @Column
     needCodeTill?: Date;
+
+    @Column
+    codeCnt!: number;
 }
