@@ -12,7 +12,7 @@ import {
 } from "asy-balance-core";
 
 import SingleInit from "./SingleInit";
-import {AsyTaskStatus, AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
+import {AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
 
 const PASSWORD_PLACEHOLDER = "\x01\x02\x03";
 
@@ -20,6 +20,11 @@ export type AsyExecutorAccountUpdateParams = {
     name?: string
     prefs?: AsyBalancePreferences
     active?: boolean
+}
+
+export type AsyExecuteParams = {
+    task?: string
+    outer?: object
 }
 
 export interface AsyExecutorAccount {
@@ -34,7 +39,7 @@ export interface AsyExecutorAccount {
     readonly tasks: Promise<AsyTaskStatuses>
     readonly provider: Promise<AsyBalanceProvider>
 
-    execute(task?: string): Promise<AsyBalanceResult[]>;
+    execute(params?: AsyExecuteParams): Promise<AsyBalanceResult[]>;
     update(fields: AsyExecutorAccountUpdateParams): Promise<void>;
     delete(): Promise<void>;
 }
@@ -94,15 +99,15 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
 
     public async getAccount(): Promise<Account> {
         const acc = await this.acc.get({
-            getT: () => Account.findOne({include: [Provider], where: {id: this.accId}}),
-            initT: (acc) => {
+            getT: async () => {
+                const acc = await Account.findOne({include: [Provider], where: {id: this.accId}});
                 if (!acc)
                     throw new Error('Account not found!');
                 if (!this.accId)
                     this.accId = acc.id;
 
                 return acc;
-            }
+            },
         });
         return acc;
     }
@@ -122,7 +127,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         return prefs ? JSON.parse(prefs) : {}
     }
 
-    public async execute(task?: string): Promise<AsyBalanceResult[]>{
+    public async execute(params: AsyExecuteParams = {}): Promise<AsyBalanceResult[]>{
         log.info('About to execute account ' + this.accId);
 
         const [prov, acc] = await Promise.all([
@@ -132,10 +137,10 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
 
         const prefs = this.getPreferences();
         prefs.proxy = acc.proxy || undefined;
-        prefs.__task = task;
+        prefs.__task = params.task;
 
         let exec = Execution.build({
-            task: task,
+            task: params.task,
             status: ExecutionStatus.INPROGRESS,
             prefs: JSON.stringify(prefs, null, '  '),
             accountId: acc.id
@@ -145,20 +150,21 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
 
         let stimpl = new AsyBalanceDBStorageImpl(exec, acc);
 
-        log.info('Starting account ' + this.accId + '(task: ' + task + ') provider ' + acc.provider.type);
+        log.info('Starting account ' + this.accId + '(task: ' + params.task + ') provider ' + acc.provider.type);
         let result: AsyBalanceResult[] = [];
 
         try {
             result = await prov.execute({
-                task: task,
+                task: params.task,
                 accId: '' + this.accId,
                 preferences: prefs,
                 apiTrace: stimpl,
                 apiStorage: stimpl,
                 apiResult: stimpl,
                 apiRetrieve: stimpl,
-                proxy: prefs.proxy
-            })
+                proxy: prefs.proxy,
+                outer: params.outer
+            });
 
             exec.status = this.getStatusFromResult(result);
             log.info("Account " + this.accId + " finished successfully with status " + exec.status);

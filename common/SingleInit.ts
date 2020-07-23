@@ -1,7 +1,6 @@
 export type SingleInitOptions<T> = {
     value?: T
     getT?: () => Promise<T>
-    initT?: (t: T) => T
 }
 
 export default class SingleInit<T>{
@@ -15,7 +14,7 @@ export default class SingleInit<T>{
     }
 
     async get(options?: SingleInitOptions<T>): Promise<T>{
-        let {value, getT, initT} = options || {};
+        let {value, getT} = options || {};
         if(value && !this.value)
             this.value = value;
         if(this.value !== undefined)
@@ -31,10 +30,6 @@ export default class SingleInit<T>{
             }
 
             let value = await this.valuePromise;
-            if(!initT)
-                initT = this.options.initT;
-            if(initT)
-                value = initT(value);
 
             return this.value = value;
         }finally {

@@ -11,6 +11,7 @@ import Code from "../models/Code";
 
 export type AsyBalanceExecutorConfig = {
     connection_string: string
+    timezone?: string
 }
 
 export default class AsyBalanceExecutor{
@@ -21,6 +22,7 @@ export default class AsyBalanceExecutor{
 
     private constructor(config: AsyBalanceExecutorConfig) {
         this.sequelize =  new Sequelize(config.connection_string, {
+            timezone: config.timezone,
             define: {
                 underscored: true,
                 timestamps: false,
