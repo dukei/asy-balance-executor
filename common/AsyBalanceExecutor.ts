@@ -12,6 +12,7 @@ import Code from "../models/Code";
 export type AsyBalanceExecutorConfig = {
     connection_string: string
     timezone?: string
+    db_logging?: boolean
 }
 
 export default class AsyBalanceExecutor{
@@ -23,6 +24,7 @@ export default class AsyBalanceExecutor{
     private constructor(config: AsyBalanceExecutorConfig) {
         this.sequelize =  new Sequelize(config.connection_string, {
             timezone: config.timezone,
+            logging: config.db_logging === undefined ? true : config.db_logging,
             define: {
                 underscored: true,
                 timestamps: false,
@@ -36,9 +38,9 @@ export default class AsyBalanceExecutor{
         AsyBalanceExecutor.config = config;
     }
 
-    public static async getInstance(config?: AsyBalanceExecutorConfig): Promise<AsyBalanceExecutor>{
+    public static async getInstance(): Promise<AsyBalanceExecutor>{
         if(!AsyBalanceExecutor.instance){
-            const _config = config || AsyBalanceExecutor.config;
+            const _config = AsyBalanceExecutor.config;
             if(!_config)
                 throw new Error('No config specified neither in argument or in setConfig!');
 
