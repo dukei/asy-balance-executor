@@ -13,6 +13,7 @@ import Code from "./Code";
 
 export enum ExecutionStatus{
     IDLE='IDLE',
+    INQUEUE='INQUEUE',
     INPROGRESS= 'INPROGRESS',
     SUCCESS = 'SUCCESS',
     SUCCESS_PARTIAL = "SUCCESS_PARTIAL",

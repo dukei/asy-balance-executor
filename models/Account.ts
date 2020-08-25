@@ -11,6 +11,13 @@ import {
 } from 'sequelize-typescript';
 import Provider from "./Provider";
 import AccountTask from "./AccountTask";
+import {ExecutionStatus} from "./Execution";
+
+export enum AccountType{
+    SERVER = 'SERVER',
+    REMOTE = 'REMOTE',
+}
+
 
 @Table({tableName: 'ab_accounts'})
 export default class Account extends Model<Account> {
@@ -49,4 +56,8 @@ export default class Account extends Model<Account> {
 
     @Column
     proxy!: string;
+
+    @Column(DataType.ENUM(AccountType.SERVER, AccountType.REMOTE))
+    type!: AccountType
+
 }

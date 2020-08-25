@@ -1,7 +1,7 @@
 import {Sequelize} from "sequelize-typescript";
 import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
 import {AsyExecutorAccount, AsyExecutorAccountImpl, AsyExecutorAccountUpdateParams} from "./AsyExecutorAccountImpl";
-import Account from "../models/Account";
+import Account, {AccountType} from "../models/Account";
 import AccountTask from "../models/AccountTask";
 import Provider from "../models/Provider";
 import SingleInit from "./SingleInit";
@@ -98,7 +98,7 @@ export default class AsyBalanceExecutor{
         await AsyBalanceDBStorageImpl.resolveCode(codeId, code);
     }
 
-    public async getAccounts(userId?: string, ids?: number[]): Promise<AsyExecutorAccount[]>{
+    public async getAccounts(userId?: string, ids?: number[], type?: AccountType): Promise<AsyExecutorAccount[]>{
         const where: {[name: string]: any} = {};
         if(userId)
             where.userId = userId;
@@ -109,6 +109,9 @@ export default class AsyBalanceExecutor{
             else
                 where.id = ids;
         }
+
+        if(type)
+            where.type = type;
 
         const accs = await Account.findAll({include: [Provider, AccountTask], where: where});
         return accs.map(acc => new AsyExecutorAccountImpl(acc));

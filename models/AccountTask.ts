@@ -1,13 +1,4 @@
-import {
-    AllowNull, BelongsTo,
-    Column,
-    CreatedAt,
-    DataType,
-    ForeignKey,
-    Model,
-    PrimaryKey,
-    Table, UpdatedAt,
-} from "sequelize-typescript";
+import {AllowNull, BelongsTo, Column, DataType, ForeignKey, Model, PrimaryKey, Table,} from "sequelize-typescript";
 
 import Execution, {ExecutionStatus} from "./Execution";
 import Account from "./Account";
@@ -35,7 +26,7 @@ export default class AccountTask extends Model<AccountTask> {
     account!: Account;
 
     @AllowNull
-    @Column(DataType.ENUM(ExecutionStatus.IDLE, ExecutionStatus.INPROGRESS, ExecutionStatus.SUCCESS, ExecutionStatus.SUCCESS_PARTIAL, ExecutionStatus.ERROR))
+    @Column(DataType.ENUM(ExecutionStatus.IDLE, ExecutionStatus.INQUEUE, ExecutionStatus.INPROGRESS, ExecutionStatus.SUCCESS, ExecutionStatus.SUCCESS_PARTIAL, ExecutionStatus.ERROR))
     lastStatus!: ExecutionStatus
 
     @AllowNull
