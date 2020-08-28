@@ -5,9 +5,17 @@ import Account, {AccountType} from "../models/Account";
 import AccountTask from "../models/AccountTask";
 import Provider from "../models/Provider";
 import SingleInit from "./SingleInit";
-import {ExecutionStatus} from "../models/Execution";
+import Execution, {ExecutionStatus} from "../models/Execution";
 import log from "./log";
 import Code from "../models/Code";
+import QueuedExecution from "../models/QueuedExecution";
+import {Op, Transaction, Includeable} from "sequelize";
+import {AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
+import _ from "lodash";
+import {v4 as uuid} from "uuid";
+import cls from "cls-hooked";
+import ExecutionLog from "../models/ExecutionLog";
+import {AsyBalanceResult} from "asy-balance-core";
 
 export type AsyBalanceExecutorConfig = {
     connection_string: string
@@ -22,9 +30,15 @@ export default class AsyBalanceExecutor{
     public readonly sequelize: Sequelize;
 
     private constructor(config: AsyBalanceExecutorConfig) {
+        const logging = config.db_logging || config.db_logging === undefined ? console.log : false;
+
+        const namespace = cls.createNamespace("asy-balance-executor");
+        //As of https://github.com/RobinBuschmann/sequelize-typescript/issues/336#issuecomment-375527175
+        (Sequelize as any).__proto__.useCLS(namespace);
+
         this.sequelize =  new Sequelize(config.connection_string, {
             timezone: config.timezone,
-            logging: config.db_logging === undefined ? true : config.db_logging,
+            logging: logging,
             define: {
                 underscored: true,
                 timestamps: false,
@@ -58,7 +72,10 @@ export default class AsyBalanceExecutor{
 
     private async initialize(): Promise<void> {
         //Завершаем задачи, которые могли остаться в статусе INPROGRESS
-        const tasks = await AccountTask.findAll({where: {lastStatus: ExecutionStatus.INPROGRESS}});
+        const tasks = await AccountTask.findAll({include: [Account], where: {
+            lastStatus: ExecutionStatus.INPROGRESS,
+            "$account.type$": AccountType.SERVER
+        }});
         log.info("AsyBalanceExecutor found " + tasks.length + " inprogress tasks. Terminated them");
 
         if(tasks.length)
@@ -98,7 +115,7 @@ export default class AsyBalanceExecutor{
         await AsyBalanceDBStorageImpl.resolveCode(codeId, code);
     }
 
-    public async getAccounts(userId?: string, ids?: number[], type?: AccountType): Promise<AsyExecutorAccount[]>{
+    private async getAccountModels(userId?: string, ids?: number[], type?: AccountType, include?: Includeable[]): Promise<Account[]>{
         const where: {[name: string]: any} = {};
         if(userId)
             where.userId = userId;
@@ -113,7 +130,12 @@ export default class AsyBalanceExecutor{
         if(type)
             where.type = type;
 
-        const accs = await Account.findAll({include: [Provider, AccountTask], where: where});
+        const accs = await Account.findAll({include: include, where: where});
+        return accs;
+    }
+
+    public async getAccounts(userId?: string, ids?: number[], type?: AccountType): Promise<AsyExecutorAccount[]>{
+        const accs = await this.getAccountModels(userId, ids, type, [Provider, AccountTask]);
         return accs.map(acc => new AsyExecutorAccountImpl(acc));
     }
 
@@ -136,5 +158,128 @@ export default class AsyBalanceExecutor{
         return new AsyExecutorAccountImpl(acc);
     }
 
+    public async resetQueuedTasks(fingerprint: string, userId: string){
+        const accs = await this.getAccountModels(userId, undefined, AccountType.REMOTE);
+        const accids = accs.map(acc => acc.id);
+        await this.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
+        }, async () => {
+            const qes = await QueuedExecution.findAll({
+                include: [Execution], where: {
+                    accountId: accids,
+                    fingerprint: fingerprint,
+                    "$execution.status$": {
+                        [Op.ne]: ExecutionStatus.INQUEUE
+                    }
+                }
+            });
+
+            for(let qe of qes){
+                const exe = qe.execution;
+                if(exe.status !== ExecutionStatus.INPROGRESS)
+                    await qe.destroy();
+                if(exe.status === ExecutionStatus.INPROGRESS){
+                    const e = await Execution.create({
+                        accountId: exe.accountId,
+                        status: ExecutionStatus.INQUEUE,
+                        task: exe.task,
+                        prefs: exe.prefs
+                    });
+                    qe.executionId = e.id;
+                    qe.fingerprint = null;
+                    await qe.save();
+
+                    const at = await AccountTask.findOne({where: {executionId: exe.id}});
+                    if(at){
+                        at.lastStatus = e.status;
+                        at.executionId = e.id;
+                        await at.save();
+                    }
+
+                }
+            }
+        });
+    }
+
+    public async getQueuedTasks(fingerprint: string, userId?: string, accIds?: number[]): Promise<AsyQueuedTask[]>{
+        const accs = await this.getAccountModels(userId, accIds, AccountType.REMOTE);
+        const accids = accs.map(acc => acc.id);
+        const accsO = _.keyBy(accs, "id");
+
+        if(!accids.length)
+            return [];
+
+        const qeToExecute: QueuedExecution[] = [];
+
+        await this.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
+        }, async () => {
+            const qes = await QueuedExecution.findAll({include: [Execution], where: {accountId: accids}});
+            const sortedqes: {
+                [accId: number]: {
+                    [task: string]: QueuedExecution[]
+                }
+            } = {};
+
+            for(let qe of qes){
+                let qeacc = sortedqes[qe.accountId];
+                if(!qeacc)
+                    qeacc = sortedqes[qe.accountId] = {};
+                const task = qe.execution.task || '';
+                let qetasks = qeacc[task];
+                if(!qetasks)
+                    qetasks = qeacc[task] = [];
+
+                qetasks.push(qe);
+            }
+
+            for(let accid in sortedqes){
+                const qeacc = sortedqes[accid];
+                for(let task in qeacc){
+                    const qetasks = qeacc[task];
+                    if(qetasks.length) {
+                        qetasks.sort(QueuedExecution.compareByDependency);
+                        const qe = qetasks[0];
+                        if(qe.execution.status === ExecutionStatus.INQUEUE)
+                            qeToExecute.push(qe);
+                    }
+                }
+            }
+
+            for(let qe of qeToExecute){
+                qe.execution.status = ExecutionStatus.INPROGRESS;
+                await qe.execution.save();
+                qe.fingerprint = fingerprint;
+                qe.token = uuid();
+                await qe.save();
+            }
+        });
+
+        return qeToExecute.map(qe => new AsyQueuedTaskImpl(qe, accsO[qe.accountId]));
+    }
+
+    public async executionLog(token: string, message: string): Promise<void>{
+        const qe = await QueuedExecution.findOne({where: {token: token}});
+        if(!qe)
+            throw new Error("Execution not found!");
+
+        await ExecutionLog.create({
+            content: message,
+            executionId: qe.id
+        });
+    }
+
+    public async executionResult(token: string, result: AsyBalanceResult, finish?: boolean): Promise<void>{
+        const qe = await QueuedExecution.findOne({include: [Execution], where: {token: token}});
+        if(!qe)
+            throw new Error("Execution not found!");
+
+        qe.execution.addResult(result, finish);
+        await qe.execution.save();
+
+        if(finish){
+            await qe.destroy();
+        }
+    }
 
 }

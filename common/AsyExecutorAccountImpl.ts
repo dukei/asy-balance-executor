@@ -13,6 +13,7 @@ import {
 
 import SingleInit from "./SingleInit";
 import {AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
+import {AsyQueuedTask} from "./AsyQueuedTask";
 
 const PASSWORD_PLACEHOLDER = "\x01\x02\x03";
 
@@ -77,7 +78,6 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
             }
             return dict;
         })();
-
     }
 
     public get provider(): Promise<AsyBalanceProvider> {
@@ -166,7 +166,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
                 outer: params.outer
             });
 
-            exec.status = this.getStatusFromResult(result);
+            exec.status = Execution.getStatusFromResult(result);
             log.info("Account " + this.accId + " finished successfully with status " + exec.status);
         }catch(e){
             log.error("Account " + this.accId + " execution error (execId:" + exec.id + "): " + e.stack);
@@ -188,26 +188,6 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         await exec.reload();
 
         return JSON.parse(exec.result);
-    }
-
-    private getStatusFromResult(result: AsyBalanceResult[]){
-        let hasError = false, hasSuccess = false;
-        for(let r of result){
-            const rs = r as AsyBalanceResultSuccess;
-            if(rs.success)
-                hasSuccess = true;
-            const re = r as AsyBalanceResultError;
-            if(re.error)
-                hasError = true;
-            if(hasSuccess && hasError)
-                break;
-        }
-
-        if(hasSuccess && hasError)
-            return ExecutionStatus.SUCCESS_PARTIAL;
-        if(hasSuccess)
-            return ExecutionStatus.SUCCESS;
-        return ExecutionStatus.ERROR;
     }
 
     public async update(fields: AsyExecutorAccountUpdateParams): Promise<void> {

@@ -39,4 +39,15 @@ export default class QueuedExecution extends Model<QueuedExecution> {
 
     @Column(DataType.DATE)
     lockedTill?: Date
+
+    @Column(DataType.STRING)
+    token!: string
+
+    @AllowNull
+    @Column(DataType.STRING)
+    fingerprint?: string|null
+
+    public static compareByDependency(qe1: QueuedExecution, qe2: QueuedExecution): number{
+        return qe1.id - qe2.id;
+    }
 }

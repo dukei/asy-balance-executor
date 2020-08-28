@@ -4,7 +4,9 @@ import {AsyExecutorAccount} from "./common/AsyExecutorAccountImpl";
 import SingleInit from "./common/SingleInit";
 import { AsyCode, AsyCodeType, AsyRetrieveParamsCode, AsyRetrieveParamsImage } from "./common/AsyCode";
 import { AsyTaskStatus, AsyTaskStatuses } from "./common/AsyTaskStatus";
+import { AsyQueuedTask, AsyAccountSavedData } from "./common/AsyQueuedTask";
 import Provider from "./models/Provider";
+import {AccountType} from "./models/Account";
 
 export * from "asy-balance-core";
 export {
@@ -13,6 +15,8 @@ export {
     AsyExecutorAccount,
     AsyCode, AsyCodeType, AsyRetrieveParamsCode, AsyRetrieveParamsImage,
     AsyTaskStatus, AsyTaskStatuses,
+    AsyQueuedTask, AsyAccountSavedData,
     Provider as ABProviderModel,
+    AccountType as AsyAccountType,
     ExecutionStatus as ABExecutionStatus
 };
