@@ -10,12 +10,13 @@ import log from "./log";
 import Code from "../models/Code";
 import QueuedExecution from "../models/QueuedExecution";
 import {Op, Transaction, Includeable} from "sequelize";
-import {AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
+import {AsyAccountSavedData, AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
 import _ from "lodash";
 import {v4 as uuid} from "uuid";
 import cls from "cls-hooked";
 import ExecutionLog from "../models/ExecutionLog";
-import {AsyBalanceResult} from "asy-balance-core";
+import {AsyBalanceResult, AsyCookie} from "asy-balance-core";
+import Merge from "./Merge";
 
 export type AsyBalanceExecutorConfig = {
     connection_string: string
@@ -265,11 +266,11 @@ export default class AsyBalanceExecutor{
 
         await ExecutionLog.create({
             content: message,
-            executionId: qe.id
+            executionId: qe.executionId
         });
     }
 
-    public async executionResult(token: string, result: AsyBalanceResult, finish?: boolean): Promise<void>{
+    public async executionSetResult(token: string, result: AsyBalanceResult, finish?: boolean): Promise<void>{
         const qe = await QueuedExecution.findOne({include: [Execution], where: {token: token}});
         if(!qe)
             throw new Error("Execution not found!");
@@ -280,6 +281,44 @@ export default class AsyBalanceExecutor{
         if(finish){
             await qe.destroy();
         }
+    }
+
+    public async executionSaveData(token: string, data: AsyAccountSavedData|null = {}): Promise<AsyAccountSavedData>{
+        let sd: AsyAccountSavedData = {};
+
+        await this.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
+        }, async () => {
+            const qe = await QueuedExecution.findOne({include: [Account], where: {token: token}});
+            if(!qe)
+                throw new Error("Execution not found!");
+
+            if(qe.account.savedData)
+                sd = JSON.parse(qe.account.savedData);
+
+            if(data)
+                Merge.merge(sd, data);
+            else
+                sd = {};
+
+            qe.account.savedData = JSON.stringify(sd);
+            await qe.account.save();
+        });
+
+        return sd;
+    }
+
+    public async executionLoggedIn(token: string, loggedInData?: string): Promise<string>{
+        const qe = await QueuedExecution.findOne({where: {token: token}});
+        if(!qe)
+            throw new Error("Execution not found!");
+
+        if(loggedInData){
+            qe.loggedIn = loggedInData;
+            await qe.save();
+        }
+
+        return qe.loggedIn || "";
     }
 
 }

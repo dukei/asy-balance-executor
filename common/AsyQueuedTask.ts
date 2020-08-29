@@ -1,10 +1,13 @@
-import {AsyBalancePreferences, AsyBalanceProvider, AsyBalanceResult} from "asy-balance-core";
-import {AsyTaskStatuses} from "./AsyTaskStatus";
-import {AsyExecuteParams, AsyExecutorAccountUpdateParams} from "./AsyExecutorAccountImpl";
+import {AsyBalancePreferences, AsyCookie} from "asy-balance-core";
 import QueuedExecution from "../models/QueuedExecution";
 import Account from "../models/Account";
 
-export type AsyAccountSavedData = {[name: string]: any};
+export type AsyAccountSavedData = {
+    [login: string]: {
+        cookies?: AsyCookie[],
+        [name: string]: any
+    }
+};
 
 export interface AsyQueuedTask {
     readonly id: number

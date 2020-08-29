@@ -47,6 +47,10 @@ export default class QueuedExecution extends Model<QueuedExecution> {
     @Column(DataType.STRING)
     fingerprint?: string|null
 
+    @AllowNull
+    @Column(DataType.TEXT)
+    loggedIn?: string
+
     public static compareByDependency(qe1: QueuedExecution, qe2: QueuedExecution): number{
         return qe1.id - qe2.id;
     }
