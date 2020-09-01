@@ -10,7 +10,12 @@ import {
 
 import Account from "./Account";
 import Code from "./Code";
-import {AsyBalanceResult, AsyBalanceResultError, AsyBalanceResultSuccess} from "asy-balance-core";
+import {
+    AsyBalancePreferences,
+    AsyBalanceResult,
+    AsyBalanceResultError,
+    AsyBalanceResultSuccess
+} from "asy-balance-core";
 
 export enum ExecutionStatus{
     IDLE='IDLE',
@@ -90,5 +95,8 @@ export default class Execution extends Model<Execution> {
         return ExecutionStatus.ERROR;
     }
 
+    public getPrefs(): AsyBalancePreferences {
+        return this.prefs ? JSON.parse(this.prefs) : {}
+    }
 
 }

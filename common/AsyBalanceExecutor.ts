@@ -285,27 +285,29 @@ export default class AsyBalanceExecutor{
 
     public async executionSaveData(token: string, data: AsyAccountSavedData|null = {}): Promise<AsyAccountSavedData>{
         let sd: AsyAccountSavedData = {};
+        let key = '';
 
         await this.sequelize.transaction({
             isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
         }, async () => {
-            const qe = await QueuedExecution.findOne({include: [Account], where: {token: token}});
+            const qe = await QueuedExecution.findOne({include: [Account, Execution], where: {token: token}});
             if(!qe)
                 throw new Error("Execution not found!");
+
+            key = AsyQueuedTaskImpl.getSavedDataKey(qe.execution, qe.account);
+
+            const newData = {[key]: data};
 
             if(qe.account.savedData)
                 sd = JSON.parse(qe.account.savedData);
 
-            if(data)
-                Merge.merge(sd, data);
-            else
-                sd = {};
+            Merge.merge(sd, newData);
 
             qe.account.savedData = JSON.stringify(sd);
             await qe.account.save();
         });
 
-        return sd;
+        return sd[key];
     }
 
     public async executionLoggedIn(token: string, loggedInData?: string): Promise<string>{
