@@ -14,6 +14,7 @@ import {
 import SingleInit from "./SingleInit";
 import {AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
 import {AsyQueuedTask} from "./AsyQueuedTask";
+import QueuedExecution from "../models/QueuedExecution";
 
 const PASSWORD_PLACEHOLDER = "\x01\x02\x03";
 
@@ -43,6 +44,7 @@ export interface AsyExecutorAccount {
     execute(params?: AsyExecuteParams): Promise<AsyBalanceResult[]>;
     update(fields: AsyExecutorAccountUpdateParams): Promise<void>;
     delete(): Promise<void>;
+    createQueuedTask(prefs: AsyBalancePreferences, task?: string): Promise<number>;
 }
 
 export class AsyExecutorAccountImpl implements AsyExecutorAccount {
@@ -222,5 +224,21 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
     public async delete(): Promise<void> {
         const acc = await this.getAccount();
         await acc.destroy();
+    }
+
+    public async createQueuedTask(prefs: AsyBalancePreferences, task?: string): Promise<number>{
+        const e = await Execution.create({
+            status: ExecutionStatus.INQUEUE,
+            prefs: JSON.stringify(prefs),
+            accountId: this.accId,
+            task: task
+        });
+
+        const qe = await QueuedExecution.create({
+            accountId: this.accId,
+            executionId: e.id
+        });
+
+        return qe.id;
     }
 }
