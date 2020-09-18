@@ -33,7 +33,7 @@ export class AsyQueuedTaskImpl implements AsyQueuedTask{
     readonly savedData: AsyAccountSavedData
 
     public constructor(qe: QueuedExecution, acc: Account){
-        this.id = qe.execution.id;
+        this.id = qe.id;
         this.task = qe.execution.task;
         this.prefs = qe.execution.getPrefs();
         this.token = qe.token;

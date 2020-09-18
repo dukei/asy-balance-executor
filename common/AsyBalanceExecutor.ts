@@ -159,8 +159,9 @@ export default class AsyBalanceExecutor{
         return new AsyExecutorAccountImpl(acc);
     }
 
-    public async resetQueuedTasks(fingerprint: string, userId: string){
+    public async resetQueuedTasks(fingerprint: string, userId: string): Promise<number>{
         const accs = await this.getAccountModels(userId, undefined, AccountType.REMOTE);
+        let reset = 0;
         const accids = accs.map(acc => acc.id);
         await this.sequelize.transaction({
             isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
@@ -189,6 +190,7 @@ export default class AsyBalanceExecutor{
                     qe.executionId = e.id;
                     qe.fingerprint = null;
                     await qe.save();
+                    ++reset;
 
                     const at = await AccountTask.findOne({where: {executionId: exe.id}});
                     if(at){
@@ -196,10 +198,11 @@ export default class AsyBalanceExecutor{
                         at.executionId = e.id;
                         await at.save();
                     }
-
                 }
             }
         });
+
+        return reset;
     }
 
     public async getQueuedTasks(fingerprint: string, userId?: string, accIds?: number[]): Promise<AsyQueuedTask[]>{
