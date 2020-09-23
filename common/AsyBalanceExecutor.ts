@@ -9,13 +9,13 @@ import Execution, {ExecutionStatus} from "../models/Execution";
 import log from "./log";
 import Code from "../models/Code";
 import QueuedExecution from "../models/QueuedExecution";
-import {Op, Transaction, Includeable} from "sequelize";
+import {Includeable, Op, Transaction} from "sequelize";
 import {AsyAccountSavedData, AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
 import _ from "lodash";
 import {v4 as uuid} from "uuid";
 import cls from "cls-hooked";
 import ExecutionLog from "../models/ExecutionLog";
-import {AsyBalanceResult, AsyCookie} from "asy-balance-core";
+import {AsyBalanceResult} from "asy-balance-core";
 import Merge from "./Merge";
 
 export type AsyBalanceExecutorConfig = {
@@ -150,7 +150,8 @@ export default class AsyBalanceExecutor{
             userId: userId,
             name: params.name,
             prefs: JSON.stringify(params.prefs),
-            active: params.active
+            active: params.active,
+            type: prov.isRemote() ? AccountType.REMOTE : AccountType.SERVER,
         });
 
         acc.provider = prov;

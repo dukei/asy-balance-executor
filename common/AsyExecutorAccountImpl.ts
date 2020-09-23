@@ -1,4 +1,4 @@
-import Account from "../models/Account";
+import Account, {AccountType} from "../models/Account";
 import Provider from "../models/Provider";
 import log from "./log";
 import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
@@ -40,11 +40,13 @@ export interface AsyExecutorAccount {
     readonly updatedAt: Date
     readonly tasks: Promise<AsyTaskStatuses>
     readonly provider: Promise<AsyBalanceProvider>
+    readonly type: AccountType
 
     execute(params?: AsyExecuteParams): Promise<AsyBalanceResult[]>;
     update(fields: AsyExecutorAccountUpdateParams): Promise<void>;
     delete(): Promise<void>;
     createQueuedTask(prefs: AsyBalancePreferences, task?: string): Promise<number>;
+    getPreferences(): AsyBalancePreferences;
 }
 
 export class AsyExecutorAccountImpl implements AsyExecutorAccount {
@@ -69,6 +71,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
     public get active(): boolean { return this.acc.value?.active || false };
     public get createdAt(): Date { return this.acc.value?.createdAt! };
     public get updatedAt(): Date { return this.acc.value?.updatedAt! };
+    public get type(): AccountType { return this.acc.value?.type! };
 
     public get tasks(): Promise<AsyTaskStatuses> {
         return (async () => {
@@ -124,7 +127,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         return prov;
     }
 
-    private getPreferences(): AsyBalancePreferences {
+    public getPreferences(): AsyBalancePreferences {
         const prefs = this.acc.value?.prefs;
         return prefs ? JSON.parse(prefs) : {}
     }

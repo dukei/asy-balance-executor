@@ -28,4 +28,8 @@ export default class Provider extends Model<Provider> {
 
     @UpdatedAt
     updatedAt!: Date;
+
+    public isRemote(): boolean {
+        return /^ab2-remote-/.test(this.type);
+    }
 }
