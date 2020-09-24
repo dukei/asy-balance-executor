@@ -29,6 +29,11 @@ export type AsyExecuteParams = {
     outer?: object
 }
 
+export type AsyQueuedTaskPreferences = {
+    id: string,
+    [name: string]: any
+}
+
 export interface AsyExecutorAccount {
     readonly id: number
     readonly providerId: number
@@ -229,10 +234,14 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         await acc.destroy();
     }
 
-    public async createQueuedTask(prefs: AsyBalancePreferences, task?: string): Promise<number>{
+    public async createQueuedTask(prefsTask: AsyQueuedTaskPreferences, task?: string): Promise<number>{
+        const prefs = this.getPreferences();
         const e = await Execution.create({
             status: ExecutionStatus.INQUEUE,
-            prefs: JSON.stringify(prefs),
+            prefs: JSON.stringify({
+                common: prefs,
+                task: prefsTask
+            }),
             accountId: this.accId,
             task: task
         });
