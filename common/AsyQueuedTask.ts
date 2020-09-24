@@ -46,8 +46,8 @@ export class AsyQueuedTaskImpl implements AsyQueuedTask{
     public static getSavedDataKey(e: Execution, acc: Account): string {
         const prefs = e.getPrefs();
         let key = SD_PREFIX.replace(/%PROVIDER_ID%/g, '' + acc.providerId);
-        if(prefs.login)
-            key += prefs.login;
+        if(prefs?.common?.login)
+            key += prefs?.common?.login;
         return key;
     }
 
