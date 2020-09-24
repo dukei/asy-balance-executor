@@ -305,7 +305,7 @@ export default class AsyBalanceExecutor{
             if(qe.account.savedData)
                 sd = JSON.parse(qe.account.savedData);
 
-            Merge.merge(sd, newData);
+            sd = Merge.merge(sd, newData);
 
             qe.account.savedData = JSON.stringify(sd);
             await qe.account.save();
