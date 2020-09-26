@@ -280,6 +280,8 @@ export default class AsyBalanceExecutor{
             throw new Error("Execution not found!");
 
         qe.execution.addResult(result, finish);
+        if(finish)
+            qe.execution.finishedAt = new Date();
         await qe.execution.save();
 
         if(finish){
