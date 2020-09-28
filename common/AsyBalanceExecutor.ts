@@ -291,7 +291,7 @@ export default class AsyBalanceExecutor{
                         const exe = qe.execution;
                         if(exe.status === ExecutionStatus.INQUEUE) {
                             qeToExecute.push(qe);
-                        }else if(this.shouldResetQueuedTask(qe, fingerprint)){
+                        }else if(await this.shouldResetQueuedTask(qe, fingerprint)){
                             //Continue to task termination
                             await this.doResetQueuedTask(qe, fingerprint);
                             qeToExecute.push(qe);
