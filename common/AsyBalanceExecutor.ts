@@ -24,6 +24,8 @@ export type AsyBalanceExecutorConfig = {
     db_logging?: boolean
 }
 
+const DEAD_TASK_RESET_TIMEOUT = 180*1000;
+
 export default class AsyBalanceExecutor{
     private static instance: SingleInit<AsyBalanceExecutor>;
     private static config: AsyBalanceExecutorConfig;
@@ -160,47 +162,88 @@ export default class AsyBalanceExecutor{
         return new AsyExecutorAccountImpl(acc);
     }
 
-    public async resetQueuedTasks(fingerprint: string, userId: string): Promise<number>{
+    private async doResetQueuedTask(qe: QueuedExecution, fingerprint: string) {
+        const exe = qe.execution;
+
+        await ExecutionLog.create({
+            executionId: exe.id,
+            content: "Execution reset by " + fingerprint
+        });
+        const e = await Execution.create({
+            accountId: exe.accountId,
+            status: ExecutionStatus.INQUEUE,
+            task: exe.task,
+            prefs: exe.prefs
+        });
+        qe.execution = e;
+        qe.executionId = e.id;
+        qe.fingerprint = null;
+    }
+
+    private async shouldResetQueuedTask(qe: QueuedExecution, fingerprint: string): Promise<boolean>{
+        const exe = qe.execution;
+        if(exe.status !== ExecutionStatus.INPROGRESS || qe.fingerprint === fingerprint)
+            return false;
+
+        //Это чужая задача. Надо проверить, не зависла ли она
+        const now = +new Date();
+        if(now - exe.createdAt.getTime() < DEAD_TASK_RESET_TIMEOUT)
+            return false; //Создана меньше 3 мин назад
+        const el = await ExecutionLog.findOne({where: {
+                executionId: exe.id
+            }, order: [['id', 'DESC']]
+        });
+        if(el && now - el.createdAt.getTime() < DEAD_TASK_RESET_TIMEOUT)
+            return false; //Последний лог меньше таймаута назад
+
+        return true;
+    }
+
+    private async doResetQueuedTasks(fingerprint: string, userId: string): Promise<number>{
         const accs = await this.getAccountModels(userId, undefined, AccountType.REMOTE);
         let reset = 0;
         const accids = accs.map(acc => acc.id);
+
+        const qes = await QueuedExecution.findAll({
+            include: [Execution], where: {
+                accountId: accids,
+                fingerprint: fingerprint,
+                "$execution.status$": {
+                    [Op.ne]: ExecutionStatus.INQUEUE
+                }
+            }
+        });
+
+        for(let qe of qes){
+            let exe = qe.execution;
+            if(exe.status !== ExecutionStatus.INPROGRESS)
+                await qe.destroy();
+            if(exe.status === ExecutionStatus.INPROGRESS){
+                await this.doResetQueuedTask(qe, fingerprint);
+                exe = qe.execution;
+
+                await qe.save();
+                ++reset;
+
+                const at = await AccountTask.findOne({where: {executionId: exe.id}});
+                if(at){
+                    at.lastStatus = exe.status;
+                    at.executionId = exe.id;
+                    await at.save();
+                }
+            }
+        }
+
+        return reset;
+    }
+
+    public async resetQueuedTasks(fingerprint: string, userId: string): Promise<number>{
+        const accs = await this.getAccountModels(userId, undefined, AccountType.REMOTE);
+        let reset = 0;
         await this.sequelize.transaction({
             isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
         }, async () => {
-            const qes = await QueuedExecution.findAll({
-                include: [Execution], where: {
-                    accountId: accids,
-                    fingerprint: fingerprint,
-                    "$execution.status$": {
-                        [Op.ne]: ExecutionStatus.INQUEUE
-                    }
-                }
-            });
-
-            for(let qe of qes){
-                const exe = qe.execution;
-                if(exe.status !== ExecutionStatus.INPROGRESS)
-                    await qe.destroy();
-                if(exe.status === ExecutionStatus.INPROGRESS){
-                    const e = await Execution.create({
-                        accountId: exe.accountId,
-                        status: ExecutionStatus.INQUEUE,
-                        task: exe.task,
-                        prefs: exe.prefs
-                    });
-                    qe.executionId = e.id;
-                    qe.fingerprint = null;
-                    await qe.save();
-                    ++reset;
-
-                    const at = await AccountTask.findOne({where: {executionId: exe.id}});
-                    if(at){
-                        at.lastStatus = e.status;
-                        at.executionId = e.id;
-                        await at.save();
-                    }
-                }
-            }
+            return this.doResetQueuedTasks(fingerprint, userId);
         });
 
         return reset;
@@ -245,8 +288,14 @@ export default class AsyBalanceExecutor{
                     if(qetasks.length) {
                         qetasks.sort(QueuedExecution.compareByDependency);
                         const qe = qetasks[0];
-                        if(qe.execution.status === ExecutionStatus.INQUEUE)
+                        const exe = qe.execution;
+                        if(exe.status === ExecutionStatus.INQUEUE) {
                             qeToExecute.push(qe);
+                        }else if(this.shouldResetQueuedTask(qe, fingerprint)){
+                            //Continue to task termination
+                            await this.doResetQueuedTask(qe, fingerprint);
+                            qeToExecute.push(qe);
+                        }
                     }
                 }
             }
