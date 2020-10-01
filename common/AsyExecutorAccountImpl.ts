@@ -50,7 +50,7 @@ export interface AsyExecutorAccount {
     execute(params?: AsyExecuteParams): Promise<AsyBalanceResult[]>;
     update(fields: AsyExecutorAccountUpdateParams): Promise<void>;
     delete(): Promise<void>;
-    createQueuedTask(prefs: AsyBalancePreferences, task?: string): Promise<number>;
+    createQueuedTask(prefs: AsyQueuedTaskPreferences, task?: string): Promise<number>;
     getPreferences(): AsyBalancePreferences;
 }
 
