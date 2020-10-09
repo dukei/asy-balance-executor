@@ -23,6 +23,9 @@ export default class Provider extends Model<Provider> {
     @Column(DataType.INTEGER)
     version!: number;
 
+    @Column
+    textVersion!: string;
+
     @CreatedAt
     createdAt!: Date;
 
