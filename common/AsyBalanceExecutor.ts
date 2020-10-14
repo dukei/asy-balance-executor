@@ -328,14 +328,18 @@ export default class AsyBalanceExecutor{
         if(!qe)
             throw new Error("Execution not found!");
 
-        qe.execution.addResult(result, finish);
-        if(finish)
-            qe.execution.finishedAt = new Date();
-        await qe.execution.save();
+        await this.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
+        }, async () => {
+            qe.execution.addResult(result, finish);
+            if (finish)
+                qe.execution.finishedAt = new Date();
+            await qe.execution.save();
 
-        if(finish){
-            await qe.destroy();
-        }
+            if (finish) {
+                await qe.destroy();
+            }
+        });
     }
 
     public async executionSaveData(token: string, data: AsyAccountSavedData|null = {}): Promise<AsyAccountSavedData>{

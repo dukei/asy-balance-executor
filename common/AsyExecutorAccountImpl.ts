@@ -15,6 +15,8 @@ import SingleInit from "./SingleInit";
 import {AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
 import {AsyQueuedTask} from "./AsyQueuedTask";
 import QueuedExecution from "../models/QueuedExecution";
+import {Transaction} from "sequelize";
+import {AsyBalanceExecutor} from "../index";
 
 const PASSWORD_PLACEHOLDER = "\x01\x02\x03";
 
@@ -236,21 +238,28 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
 
     public async createQueuedTask(prefsTask: AsyQueuedTaskPreferences, task?: string): Promise<number>{
         const prefs = this.getPreferences();
-        const e = await Execution.create({
-            status: ExecutionStatus.INQUEUE,
-            prefs: JSON.stringify({
-                common: prefs,
-                task: prefsTask
-            }),
-            accountId: this.accId,
-            task: task
+        let qe: QueuedExecution;
+        const sequelize = (await AsyBalanceExecutor.getInstance()).sequelize;
+
+        await sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
+        }, async () => {
+            const e = await Execution.create({
+                status: ExecutionStatus.INQUEUE,
+                prefs: JSON.stringify({
+                    common: prefs,
+                    task: prefsTask
+                }),
+                accountId: this.accId,
+                task: task
+            });
+
+            qe = await QueuedExecution.create({
+                accountId: this.accId,
+                executionId: e.id
+            });
         });
 
-        const qe = await QueuedExecution.create({
-            accountId: this.accId,
-            executionId: e.id
-        });
-
-        return qe.id;
+        return qe!.id;
     }
 }
