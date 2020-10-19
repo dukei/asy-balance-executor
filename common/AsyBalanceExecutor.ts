@@ -323,6 +323,17 @@ export default class AsyBalanceExecutor{
         });
     }
 
+    public async getAccountByToken(token: string): Promise<AsyExecutorAccount>{
+        const qe = await QueuedExecution.findOne({where: {token: token}});
+        if(!qe)
+            throw new Error("Execution not found!");
+
+        const accs = await this.getAccounts(undefined, [qe.accountId]);
+        if(!accs.length)
+            throw new Error("Account not found!");
+        return accs[0];
+    }
+
     public async executionSetResult(token: string, result: AsyBalanceResult, finish?: boolean): Promise<void>{
         const qe = await QueuedExecution.findOne({include: [Execution], where: {token: token}});
         if(!qe)
