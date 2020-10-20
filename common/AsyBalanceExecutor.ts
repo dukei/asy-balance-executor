@@ -250,7 +250,7 @@ export default class AsyBalanceExecutor{
     }
 
     public async getQueuedTasks(fingerprint: string, userId?: string, accIds?: number[]): Promise<AsyQueuedTask[]>{
-        const accs = await this.getAccountModels(userId, accIds, AccountType.REMOTE);
+        const accs = await this.getAccountModels(userId, accIds, AccountType.REMOTE, [Provider]);
         const accids = accs.map(acc => acc.id);
         const accsO = _.keyBy(accs, "id");
 

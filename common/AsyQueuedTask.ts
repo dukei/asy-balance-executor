@@ -15,6 +15,7 @@ export type AsyAccountSavedData = {
 export interface AsyQueuedTask {
     readonly id: number
     readonly accountId: number
+    readonly providerTextId: string
     readonly task: string
     readonly prefs: AsyBalancePreferences
     readonly savedData: AsyAccountSavedData
@@ -29,6 +30,7 @@ export class AsyQueuedTaskImpl implements AsyQueuedTask{
     readonly accountId: number
     readonly task: string
     readonly token: string
+    readonly providerTextId: string
     readonly prefs: AsyBalancePreferences
     readonly savedData: AsyAccountSavedData
 
@@ -38,6 +40,7 @@ export class AsyQueuedTaskImpl implements AsyQueuedTask{
         this.prefs = qe.execution.getPrefs();
         this.token = qe.token;
         this.accountId = acc.id;
+        this.providerTextId = acc.provider?.type;
         const savedData = acc.savedData ? JSON.parse(acc.savedData) : {}
         let key = AsyQueuedTaskImpl.getSavedDataKey(qe.execution, acc);
         this.savedData = savedData[key];
