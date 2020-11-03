@@ -7,6 +7,7 @@ import { AsyTaskStatus, AsyTaskStatuses } from "./common/AsyTaskStatus";
 import { AsyQueuedTask, AsyAccountSavedData } from "./common/AsyQueuedTask";
 import Provider from "./models/Provider";
 import {AccountType} from "./models/Account";
+import Merge from "./common/Merge";
 
 export * from "asy-balance-core";
 export {
@@ -18,5 +19,6 @@ export {
     AsyQueuedTask, AsyAccountSavedData,
     Provider as ABProviderModel,
     AccountType as AsyAccountType,
-    ExecutionStatus as ABExecutionStatus
+    ExecutionStatus as ABExecutionStatus,
+    Merge
 };
