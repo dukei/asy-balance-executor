@@ -258,6 +258,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
                 accountId: this.accId,
                 executionId: e.id
             });
+            qe.execution = e;
         });
 
         const acc = await this.getAccount();
