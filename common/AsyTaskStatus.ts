@@ -75,11 +75,19 @@ export class AsyTaskStatusImpl implements AsyTaskStatus{
         }
     }
 
+    public isError(){
+        if(!this.resultErrorTime)
+            return false;
+        if(!this.resultSuccessTime)
+            return true;
+        return this.resultErrorTime.getTime() > this.resultSuccessTime.getTime();
+    }
+
     get lastError(): string | undefined {
         const res = this.resultError;
         if(!res.length)
             return 'Empty result';
-        return res[0].message;
+        return res[0].message || 'Unknown error';
     }
 
     get codes(): Promise<AsyCode[]> {

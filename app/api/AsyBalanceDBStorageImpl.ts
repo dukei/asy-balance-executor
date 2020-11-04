@@ -9,7 +9,7 @@ import {
     AsyBalanceResult,
     AsyRetrieveOptions,
     StringCallResponse,
-    AsyRetrieveType,
+    AsyRetrieveType, AsyBalanceResultError,
 } from "asy-balance-core";
 import Code from "../../models/Code";
 import SingleInit from "../../common/SingleInit";
@@ -113,10 +113,20 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
         try {
             console.log(data);
 
-            if(typeof data !== 'string')
-                data = JSON.stringify(data);
+            let result: AsyBalanceResult;
+
+            if(typeof data === 'string')
+                result = JSON.parse(data);
+            else
+                result = data;
+
+            if(result.error){
+                const resultError = result as any;
+                resultError.message = `[${this.exec.id}] ` + (resultError.message || 'Unspecified error');
+            }
 
             const curResults = this.exec.result;
+            data = JSON.stringify(result);
             if(curResults){
                 this.exec.result = curResults.replace(/\]$/, ',' + data + ']');
             }else{

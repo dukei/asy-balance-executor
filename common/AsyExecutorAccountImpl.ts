@@ -13,7 +13,7 @@ import {
 
 import SingleInit from "./SingleInit";
 import {AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
-import {AsyQueuedTask} from "./AsyQueuedTask";
+import {AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
 import QueuedExecution from "../models/QueuedExecution";
 import {Transaction} from "sequelize";
 import {AsyBalanceExecutor} from "../index";
@@ -52,7 +52,7 @@ export interface AsyExecutorAccount {
     execute(params?: AsyExecuteParams): Promise<AsyBalanceResult[]>;
     update(fields: AsyExecutorAccountUpdateParams): Promise<void>;
     delete(): Promise<void>;
-    createQueuedTask(prefs: AsyQueuedTaskPreferences, task?: string): Promise<number>;
+    createQueuedTask(prefs: AsyQueuedTaskPreferences, task?: string): Promise<AsyQueuedTask>;
     getPreferences(): AsyBalancePreferences;
 }
 
@@ -236,7 +236,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         await acc.destroy();
     }
 
-    public async createQueuedTask(prefsTask: AsyQueuedTaskPreferences, task?: string): Promise<number>{
+    public async createQueuedTask(prefsTask: AsyQueuedTaskPreferences, task?: string): Promise<AsyQueuedTask>{
         const prefs = this.getPreferences();
         let qe: QueuedExecution;
         const sequelize = (await AsyBalanceExecutor.getInstance()).sequelize;
@@ -260,6 +260,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
             });
         });
 
-        return qe!.id;
+        const acc = await this.getAccount();
+        return new AsyQueuedTaskImpl(qe!, acc);
     }
 }

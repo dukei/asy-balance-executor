@@ -16,6 +16,7 @@ export interface AsyQueuedTask {
     readonly id: number
     readonly accountId: number
     readonly providerTextId: string
+    readonly executionId: number
     readonly task: string
     readonly prefs: AsyBalancePreferences
     readonly savedData: AsyAccountSavedData
@@ -33,14 +34,16 @@ export class AsyQueuedTaskImpl implements AsyQueuedTask{
     readonly providerTextId: string
     readonly prefs: AsyBalancePreferences
     readonly savedData: AsyAccountSavedData
+    readonly executionId: number
 
     public constructor(qe: QueuedExecution, acc: Account){
-        this.id = +`${qe.id}.${qe.execution.id}`;
+        this.id = qe.id;
         this.task = qe.execution.task;
         this.prefs = qe.execution.getPrefs();
         this.token = qe.token;
         this.accountId = acc.id;
         this.providerTextId = acc.provider?.type;
+        this.executionId = qe.executionId;
         const savedData = acc.savedData ? JSON.parse(acc.savedData) : {}
         let key = AsyQueuedTaskImpl.getSavedDataKey(qe.execution, acc);
         this.savedData = savedData[key];
