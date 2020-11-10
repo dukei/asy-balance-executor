@@ -111,28 +111,7 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
 
     async setResult(data: string | AsyBalanceResult): Promise<StringCallResponse<void>> {
         try {
-            console.log(data);
-
-            let result: AsyBalanceResult;
-
-            if(typeof data === 'string')
-                result = JSON.parse(data);
-            else
-                result = data;
-
-            if(result.error){
-                const resultError = result as any;
-                resultError.message = `[${this.exec.id}] ` + (resultError.message || 'Unspecified error');
-            }
-
-            const curResults = this.exec.result;
-            data = JSON.stringify(result);
-            if(curResults){
-                this.exec.result = curResults.replace(/\]$/, ',' + data + ']');
-            }else{
-                this.exec.result = '[' + data + ']';
-            }
-
+            await this.exec.addResult(data);
             await this.exec.save();
 
             return {payload: undefined};

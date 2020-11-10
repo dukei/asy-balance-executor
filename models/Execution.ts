@@ -64,15 +64,31 @@ export default class Execution extends Model<Execution> {
     @HasMany(() => Code, "execution_id")
     codes!: Code[]
 
-    public async addResult(result: AsyBalanceResult, setStatus?: boolean){
-        let results: AsyBalanceResult[] = [];
-        if(this.result){
-            results = JSON.parse(this.result);
+    public async addResult(data: AsyBalanceResult|string, setStatus?: boolean){
+        let result: AsyBalanceResult;
+
+        if(typeof data === 'string')
+            result = JSON.parse(data);
+        else
+            result = data;
+
+        if(result.error){
+            const resultError = result as any;
+            resultError.message = `[${this.id}] ` + (resultError.message || 'Unspecified error');
         }
-        results.push(result);
-        this.result = JSON.stringify(results);
-        if(setStatus)
+
+        const curResults = this.result;
+        data = JSON.stringify(result);
+        if(curResults){
+            this.result = curResults.replace(/\]$/, ',' + data + ']');
+        }else{
+            this.result = '[' + data + ']';
+        }
+
+        if(setStatus) {
+            const results = JSON.parse(this.result);
             this.status = Execution.getStatusFromResult(results);
+        }
     }
 
     public static getStatusFromResult(result: AsyBalanceResult[]){
