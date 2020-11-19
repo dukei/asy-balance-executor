@@ -17,6 +17,7 @@ import {AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
 import QueuedExecution from "../models/QueuedExecution";
 import {Transaction} from "sequelize";
 import {AsyBalanceExecutor} from "../index";
+import AccountTask from "../models/AccountTask";
 
 const PASSWORD_PLACEHOLDER = "\x01\x02\x03";
 
@@ -29,6 +30,7 @@ export type AsyExecutorAccountUpdateParams = {
 export type AsyExecuteParams = {
     task?: string
     outer?: object
+    forceExecute?: boolean //Запускать даже если уже запущена задача
 }
 
 export type AsyQueuedTaskPreferences = {
@@ -151,15 +153,32 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         prefs.proxy = acc.proxy || undefined;
         prefs.__task = params.task;
 
-        let exec = Execution.build({
-            task: params.task,
-            status: ExecutionStatus.INPROGRESS,
-            prefs: JSON.stringify(prefs, null, '  '),
-            accountId: acc.id
+        const sequelize = (await AsyBalanceExecutor.getInstance()).sequelize;
+
+        let execOrNot = await sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
+        }, async () => {
+            const accTask = await AccountTask.findOne({where: {accountId: acc.id, task: params.task || ''}});
+            if (accTask?.lastStatus === ExecutionStatus.INPROGRESS)
+                log.info(`Account ${acc.id} (${prov.id}, task: ${params.task}) is already INPROGRESS`);
+
+            if (params.forceExecute || accTask?.lastStatus !== ExecutionStatus.INPROGRESS){
+                const exec = Execution.build({
+                    task: params.task,
+                    status: ExecutionStatus.INPROGRESS,
+                    prefs: JSON.stringify(prefs, null, '  '),
+                    accountId: acc.id
+                });
+
+                await exec.save();
+                return exec;
+            }
         });
 
-        await exec.save();
+        if(!execOrNot)
+            return [{error: true, message: "Task is already in progress"}];
 
+        const exec: Execution = execOrNot;
         let stimpl = new AsyBalanceDBStorageImpl(exec, acc);
 
         log.info('Starting account ' + this.accId + '(task: ' + params.task + ') provider ' + acc.provider.type);
