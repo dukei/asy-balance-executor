@@ -1,5 +1,4 @@
 import Account, {AccountType} from "../models/Account";
-import Provider from "../models/Provider";
 import log from "./log";
 import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
 import Execution, {ExecutionStatus} from "../models/Execution";
@@ -16,7 +15,7 @@ import {AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
 import {AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
 import QueuedExecution from "../models/QueuedExecution";
 import {Transaction} from "sequelize";
-import {AsyBalanceExecutor} from "../index";
+import {AsyBalanceExecutor, AsyExecutorProvider} from "../index";
 import AccountTask from "../models/AccountTask";
 
 const PASSWORD_PLACEHOLDER = "\x01\x02\x03";
@@ -48,7 +47,7 @@ export interface AsyExecutorAccount {
     readonly createdAt: Date
     readonly updatedAt: Date
     readonly tasks: Promise<AsyTaskStatuses>
-    readonly provider: Promise<AsyBalanceProvider>
+    readonly provider: Promise<AsyExecutorProvider>
     readonly type: AccountType
 
     execute(params?: AsyExecuteParams): Promise<AsyBalanceResult[]>;
@@ -60,7 +59,6 @@ export interface AsyExecutorAccount {
 
 export class AsyExecutorAccountImpl implements AsyExecutorAccount {
     private accId: number;
-    private prov: SingleInit<AsyBalanceProvider> = new SingleInit<AsyBalanceProvider>();
     private acc: SingleInit<Account>;
 
     constructor(acc: number|Account) {
@@ -94,7 +92,11 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         })();
     }
 
-    public get provider(): Promise<AsyBalanceProvider> {
+    public get provider(): Promise<AsyExecutorProvider> {
+        return this.getProvider();
+    }
+
+    public get providerBundle(): Promise<AsyBalanceProvider> {
         return this.getProviderBundle();
     }
 
@@ -114,7 +116,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
     public async getAccount(): Promise<Account> {
         const acc = await this.acc.get({
             getT: async () => {
-                const acc = await Account.findOne({include: [Provider], where: {id: this.accId}});
+                const acc = await Account.findOne({where: {id: this.accId}});
                 if (!acc)
                     throw new Error('Account not found!');
                 if (!this.accId)
@@ -127,13 +129,13 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
     }
 
     private async getProviderBundle(): Promise<AsyBalanceProvider> {
-        const prov = await this.prov.get({getT: async () => {
-            let acc = await this.getAccount();
-            let pb = await AsyBalanceProvider.create(acc.provider.data);
-            return pb;
-        }});
+        const prov = await this.getProvider();
+        return prov.provBundle;
+    }
 
-        return prov;
+    private async getProvider(): Promise<AsyExecutorProvider> {
+        const acc = await this.getAccount();
+        return AsyExecutorProvider.get(acc.providerId);
     }
 
     public getPreferences(): AsyBalancePreferences {
@@ -144,10 +146,8 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
     public async execute(params: AsyExecuteParams = {}): Promise<AsyBalanceResult[]>{
         log.info('About to execute account ' + this.accId);
 
-        const [prov, acc] = await Promise.all([
-            this.getProviderBundle(),
-            this.getAccount()
-        ]);
+        const acc = await this.getAccount();
+        const prov = await this.provider;
 
         const prefs = this.getPreferences();
         prefs.proxy = acc.proxy || undefined;
@@ -181,11 +181,11 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         const exec: Execution = execOrNot;
         let stimpl = new AsyBalanceDBStorageImpl(exec, acc);
 
-        log.info('Starting account ' + this.accId + '(task: ' + params.task + ') provider ' + acc.provider.type);
+        log.info('Starting account ' + this.accId + '(task: ' + params.task + ') provider ' + prov.textId);
         let result: AsyBalanceResult[] = [];
 
         try {
-            result = await prov.execute({
+            result = await prov.provBundle.execute({
                 task: params.task,
                 accId: '' + this.accId,
                 preferences: prefs,
@@ -281,6 +281,6 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         });
 
         const acc = await this.getAccount();
-        return new AsyQueuedTaskImpl(qe!, acc);
+        return new AsyQueuedTaskImpl(qe!, acc, await AsyExecutorProvider.get(acc.providerId));
     }
 }

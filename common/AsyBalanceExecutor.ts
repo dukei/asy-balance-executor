@@ -3,7 +3,6 @@ import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
 import {AsyExecutorAccount, AsyExecutorAccountImpl, AsyExecutorAccountUpdateParams} from "./AsyExecutorAccountImpl";
 import Account, {AccountType} from "../models/Account";
 import AccountTask from "../models/AccountTask";
-import Provider from "../models/Provider";
 import SingleInit from "./SingleInit";
 import Execution, {ExecutionStatus} from "../models/Execution";
 import log from "./log";
@@ -17,6 +16,7 @@ import cls from "cls-hooked";
 import ExecutionLog from "../models/ExecutionLog";
 import {AsyBalanceResult} from "asy-balance-core";
 import Merge from "./Merge";
+import {AsyExecutorProvider} from "./AsyExecutorProvider";
 
 export type AsyBalanceExecutorConfig = {
     connection_string: string
@@ -141,14 +141,12 @@ export default class AsyBalanceExecutor{
     }
 
     public async getAccounts(userId?: string, ids?: number[], type?: AccountType): Promise<AsyExecutorAccount[]>{
-        const accs = await this.getAccountModels(userId, ids, type, [Provider, AccountTask]);
+        const accs = await this.getAccountModels(userId, ids, type, [AccountTask]);
         return accs.map(acc => new AsyExecutorAccountImpl(acc));
     }
 
     public async createAccount(providerId: number, userId: string, params: AsyExecutorAccountUpdateParams): Promise<AsyExecutorAccount>{
-        const prov = await Provider.findOne({where: {id: providerId}});
-        if(!prov)
-            throw new Error("Wrong provider ID!");
+        const prov = await AsyExecutorProvider.get(providerId);
 
         const acc = await Account.create({
             providerId: prov.id,
@@ -159,7 +157,6 @@ export default class AsyBalanceExecutor{
             type: prov.isRemote() ? AccountType.REMOTE : AccountType.SERVER,
         });
 
-        acc.provider = prov;
         acc.tasks = [];
 
         return new AsyExecutorAccountImpl(acc);
@@ -253,9 +250,10 @@ export default class AsyBalanceExecutor{
     }
 
     public async getQueuedTasks(fingerprint: string, userId?: string, accIds?: number[]): Promise<AsyQueuedTask[]>{
-        const accs = await this.getAccountModels(userId, accIds, AccountType.REMOTE, [Provider]);
+        const accs = await this.getAccountModels(userId, accIds, AccountType.REMOTE);
         const accids = accs.map(acc => acc.id);
         const accsO = _.keyBy(accs, "id");
+
 
         if(!accids.length)
             return [];
@@ -312,7 +310,13 @@ export default class AsyBalanceExecutor{
             }
         });
 
-        return qeToExecute.map(qe => new AsyQueuedTaskImpl(qe, accsO[qe.accountId]));
+        const tasks: AsyQueuedTask[] = [];
+        for(let qe of qeToExecute){
+            const acc = accsO[qe.accountId];
+            tasks.push(new AsyQueuedTaskImpl(qe, acc, await AsyExecutorProvider.get(acc.providerId)));
+        }
+
+        return tasks;
     }
 
     public async executionLog(token: string, message: string): Promise<void>{
@@ -394,6 +398,22 @@ export default class AsyBalanceExecutor{
         }
 
         return qe.loggedIn || "";
+    }
+
+    public async getProviders(ids?: (number|string)[]): Promise<AsyExecutorProvider[]> {
+        if(!ids)
+            return AsyExecutorProvider.getAll();
+        else{
+            const result: AsyExecutorProvider[] = [];
+            for(let id of ids){
+                result.push(await this.getProvider(id))
+            }
+            return result;
+        }
+    }
+
+    public async getProvider(id: number|string): Promise<AsyExecutorProvider> {
+        return await AsyExecutorProvider.get(id)
     }
 
 }

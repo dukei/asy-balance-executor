@@ -33,9 +33,6 @@ export default class Account extends Model<Account> {
     @Column
     name?: string;
 
-    @BelongsTo(() => Provider)
-    provider!: Provider;
-
     @CreatedAt
     createdAt!: Date;
 
