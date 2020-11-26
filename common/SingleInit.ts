@@ -50,7 +50,7 @@ export class DoubleCheckLock{
         if(condition()){
             while(this.locks[name]) {
                 try {
-                    log.info("Waiting for lock " + name)
+                    //log.info("Waiting for lock " + name)
                     await this.locks[name]
                 } catch (e) {
                 } finally {
