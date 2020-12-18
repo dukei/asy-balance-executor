@@ -47,7 +47,7 @@ export default class AsyBalanceExecutor{
                 timestamps: false,
             },
             pool: {
-                max: 15
+                max: 30
             },
             models: [__dirname + '/../models']
         });
