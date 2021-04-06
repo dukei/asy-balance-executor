@@ -9,7 +9,7 @@ import {
     Table, UpdatedAt,
 } from "sequelize-typescript";
 
-@Table({tableName: 'ab_providers'})
+@Table({tableName: 'ab_providers', underscored: true, timestamps: false})
 export default class Provider extends Model<Provider> {
     @Column
     name!: string;

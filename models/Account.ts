@@ -19,7 +19,7 @@ export enum AccountType{
 }
 
 
-@Table({tableName: 'ab_accounts'})
+@Table({tableName: 'ab_accounts', underscored: true, timestamps: false})
 export default class Account extends Model<Account> {
     @ForeignKey(() => Provider)
     @Column

@@ -26,7 +26,7 @@ export enum ExecutionStatus{
     ERROR = 'ERROR'
 }
 
-@Table({tableName: 'ab_executions'})
+@Table({tableName: 'ab_executions', underscored: true, timestamps: false})
 export default class Execution extends Model<Execution> {
     @ForeignKey(() => Account)
     @Column

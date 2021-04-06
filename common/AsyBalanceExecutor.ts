@@ -1,4 +1,4 @@
-import {Sequelize} from "sequelize-typescript";
+import {Sequelize, ModelCtor} from "sequelize-typescript";
 import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
 import {AsyExecutorAccount, AsyExecutorAccountImpl, AsyExecutorAccountUpdateParams} from "./AsyExecutorAccountImpl";
 import Account, {AccountType} from "../models/Account";
@@ -17,9 +17,11 @@ import ExecutionLog from "../models/ExecutionLog";
 import {AsyBalanceResult} from "asy-balance-core";
 import Merge from "./Merge";
 import {AsyExecutorProvider} from "./AsyExecutorProvider";
+import Provider from "../models/Provider";
 
 export type AsyBalanceExecutorConfig = {
-    connection_string: string
+    sequelize?: Sequelize
+    connection_string?: string
     timezone?: string
     db_logging?: boolean
 }
@@ -39,18 +41,29 @@ export default class AsyBalanceExecutor{
         //As of https://github.com/RobinBuschmann/sequelize-typescript/issues/336#issuecomment-375527175
         (Sequelize as any).__proto__.useCLS(namespace);
 
-        this.sequelize =  new Sequelize(config.connection_string, {
-            timezone: config.timezone,
-            logging: logging,
-            define: {
-                underscored: true,
-                timestamps: false,
-            },
-            pool: {
-                max: 30
-            },
-            models: [__dirname + '/../models']
-        });
+        let modelPaths = [__dirname + '/../models'];
+
+
+        if(config.connection_string) {
+            this.sequelize = new Sequelize(config.connection_string, {
+                timezone: config.timezone,
+                logging: logging,
+                define: {
+                    underscored: true,
+                    timestamps: false,
+                },
+                pool: {
+                    max: 30
+                },
+                models: modelPaths
+            });
+        }else{
+            if(!config.sequelize)
+                throw new Error("Either connection_string of sequelize instance should be specified!")
+
+            this.sequelize = config.sequelize;
+            this.sequelize.addModels(modelPaths);
+        }
 
     }
 

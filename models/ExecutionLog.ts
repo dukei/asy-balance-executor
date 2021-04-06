@@ -10,7 +10,7 @@ import {
 
 import Execution from "./Execution";
 
-@Table({tableName: 'ab_execution_logs'})
+@Table({tableName: 'ab_execution_logs', underscored: true, timestamps: false})
 export default class ExecutionLog extends Model<ExecutionLog> {
     @ForeignKey(() => Execution)
     @Column

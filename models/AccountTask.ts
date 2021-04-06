@@ -3,7 +3,7 @@ import {AllowNull, BelongsTo, Column, DataType, ForeignKey, Model, PrimaryKey, T
 import Execution, {ExecutionStatus} from "./Execution";
 import Account from "./Account";
 
-@Table({tableName: 'ab_account_tasks'})
+@Table({tableName: 'ab_account_tasks', underscored: true, timestamps: false})
 export default class AccountTask extends Model<AccountTask> {
     @PrimaryKey
     @ForeignKey(() => Account)

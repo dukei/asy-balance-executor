@@ -11,7 +11,7 @@ import {
 import Execution, {ExecutionStatus} from "./Execution";
 import Account from "./Account";
 
-@Table({tableName: 'ab_queued_executions'})
+@Table({tableName: 'ab_queued_executions', underscored: true, timestamps: false})
 export default class QueuedExecution extends Model<QueuedExecution> {
     @ForeignKey(() => Account)
     @Column
