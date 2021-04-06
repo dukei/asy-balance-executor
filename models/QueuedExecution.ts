@@ -12,7 +12,7 @@ import Execution, {ExecutionStatus} from "./Execution";
 import Account from "./Account";
 
 @Table({tableName: 'ab_queued_executions', underscored: true, timestamps: false})
-export default class QueuedExecution extends Model<QueuedExecution> {
+export default class QueuedExecution extends Model {
     @ForeignKey(() => Account)
     @Column
     accountId!: number;

@@ -10,7 +10,7 @@ import {
 } from "sequelize-typescript";
 
 @Table({tableName: 'ab_providers', underscored: true, timestamps: false})
-export default class Provider extends Model<Provider> {
+export default class Provider extends Model {
     @Column
     name!: string;
 

@@ -4,7 +4,7 @@ import Execution, {ExecutionStatus} from "./Execution";
 import Account from "./Account";
 
 @Table({tableName: 'ab_account_tasks', underscored: true, timestamps: false})
-export default class AccountTask extends Model<AccountTask> {
+export default class AccountTask extends Model {
     @PrimaryKey
     @ForeignKey(() => Account)
     @Column

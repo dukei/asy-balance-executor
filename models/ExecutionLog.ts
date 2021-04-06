@@ -11,7 +11,7 @@ import {
 import Execution from "./Execution";
 
 @Table({tableName: 'ab_execution_logs', underscored: true, timestamps: false})
-export default class ExecutionLog extends Model<ExecutionLog> {
+export default class ExecutionLog extends Model {
     @ForeignKey(() => Execution)
     @Column
     executionId!: number;

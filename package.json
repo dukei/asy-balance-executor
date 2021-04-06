@@ -31,8 +31,8 @@
     "mariadb": "^2.4.0",
     "mysql2": "^2.1.0",
     "reflect-metadata": "^0.1.13",
-    "sequelize": "^5.21.9",
-    "sequelize-typescript": "^1.1.0",
+    "sequelize": "^6.6.2",
+    "sequelize-typescript": "^2.1.0",
     "sleep-promise": "^8.0.1",
     "uuid": "^8.3.0"
   }

@@ -15,7 +15,7 @@ import Code from "../../models/Code";
 import SingleInit from "../../common/SingleInit";
 
 type DeferredCode = {
-    resolve?: (code?: string) => void,
+    resolve?: (code: string | PromiseLike<string>) => void,
     reject?: (err: Error) => void,
     promise?: Promise<string>
 }

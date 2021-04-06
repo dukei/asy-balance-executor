@@ -1,4 +1,4 @@
-import {Sequelize, ModelCtor} from "sequelize-typescript";
+import {Sequelize} from "sequelize-typescript";
 import AsyBalanceDBStorageImpl from "../app/api/AsyBalanceDBStorageImpl";
 import {AsyExecutorAccount, AsyExecutorAccountImpl, AsyExecutorAccountUpdateParams} from "./AsyExecutorAccountImpl";
 import Account, {AccountType} from "../models/Account";

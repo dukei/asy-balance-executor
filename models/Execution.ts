@@ -27,7 +27,7 @@ export enum ExecutionStatus{
 }
 
 @Table({tableName: 'ab_executions', underscored: true, timestamps: false})
-export default class Execution extends Model<Execution> {
+export default class Execution extends Model {
     @ForeignKey(() => Account)
     @Column
     accountId!: number;

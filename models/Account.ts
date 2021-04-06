@@ -20,7 +20,7 @@ export enum AccountType{
 
 
 @Table({tableName: 'ab_accounts', underscored: true, timestamps: false})
-export default class Account extends Model<Account> {
+export default class Account extends Model {
     @ForeignKey(() => Provider)
     @Column
     providerId!: number;
