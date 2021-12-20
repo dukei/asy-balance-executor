@@ -1,7 +1,6 @@
 import Provider from "../models/Provider";
 import {AsyBalanceProvider} from "asy-balance-core";
 import {DoubleCheckLock} from "./SingleInit";
-import {logger} from "sequelize/types/lib/utils/logger";
 import log from "./log";
 
 type ProviderDates = {
@@ -28,13 +27,14 @@ export class AsyExecutorProvider {
     get updatedAt(): Date { return this.provider.updatedAt }
     get version(): number { return this.provider.version }
     get textVersion(): string { return this.provider.textVersion }
+    get disabled(): boolean { return this.provider.disabled != 0 }
 
     private constructor(prov: Provider, provBundle: AsyBalanceProvider) {
         this.provider = prov;
         this.provBundle = provBundle;
     }
 
-    private async init(){
+    private async init(): Promise<void>{
         this.script = await this.provBundle.getScript();
         this.icon = await this.provBundle.getIcon();
         this.preferences = await this.provBundle.getPreferences();

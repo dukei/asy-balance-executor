@@ -100,7 +100,14 @@ export class AsyTaskStatusImpl implements AsyTaskStatus{
             return Promise.resolve([]);
 
         return (async () => {
-            let codes = await Code.findAll({where: {executionId: this.executionId!, till: {[Op.gt]: Sequelize.fn('NOW')}}});
+            let codes: Code[] = await Code.findAll({
+                where: {
+                    executionId: this.executionId!,
+                    till: {
+                        [Op.gt]: <Date><any>Sequelize.fn('NOW')
+                    }
+                }
+            });
             return codes.map(c => new AsyCodeImpl(c));
         })();
     }

@@ -115,7 +115,7 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
             await this.exec.save();
 
             return {payload: undefined};
-        }catch(e){
+        }catch(e: any){
             console.error('setResult failed: ' + e.message);
             return {payload: undefined};
         }

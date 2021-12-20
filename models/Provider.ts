@@ -26,10 +26,13 @@ export default class Provider extends Model {
     @Column
     textVersion!: string;
 
-    @CreatedAt
+    @Column
+    disabled!: number;
+
+    @Column
     createdAt!: Date;
 
-    @UpdatedAt
+    @Column
     updatedAt!: Date;
 
     public isRemote(): boolean {

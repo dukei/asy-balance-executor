@@ -199,7 +199,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
 
             exec.status = Execution.getStatusFromResult(result);
             log.info("Account " + this.accId + " finished successfully with status " + exec.status);
-        }catch(e){
+        }catch(e: any){
             log.error("Account " + this.accId + " execution error (execId:" + exec.id + "): " + e.stack);
 
             exec.status = ExecutionStatus.ERROR;
