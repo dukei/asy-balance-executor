@@ -1,5 +1,5 @@
 import {ExecutionStatus} from "../models/Execution";
-import {AsyBalanceResult, AsyBalanceResultError} from "asy-balance-core";
+import {AsyBalanceResult, AsyBalanceResultError, AsyBalanceResultSuccess} from "asy-balance-core";
 import AccountTask from "../models/AccountTask";
 import {AsyCode, AsyCodeImpl} from "./AsyCode";
 import {Op, Sequelize} from "sequelize";
@@ -20,6 +20,10 @@ export interface AsyTaskStatus {
     lastFinishedStatus: ExecutionStatus;
     lastError: string | undefined
     codes: Promise<AsyCode[]>
+
+    isError(): boolean
+    getLastResult(): [AsyBalanceResult[],Date]|undefined
+    refresh(): Promise<void>;
 }
 
 export type AsyTaskStatuses = {[name: string]: AsyTaskStatus}
@@ -27,17 +31,22 @@ export type AsyTaskStatuses = {[name: string]: AsyTaskStatus}
 export class AsyTaskStatusImpl implements AsyTaskStatus{
     private model: AccountTask;
 
-    public readonly task: string
-    public readonly status: ExecutionStatus
-    public readonly startTime?: Date //Только в случае status = 'INPROGRESS'
-    public readonly executionId?: number //Только в случае status = 'INPROGRESS'
-    public readonly resultSuccessJSON?: string
-    public readonly resultSuccessTime?: Date
-    public readonly resultErrorJSON?: string
-    public readonly resultErrorTime?: Date
+    public task!: string
+    public status!: ExecutionStatus
+    public startTime?: Date //Только в случае status = 'INPROGRESS'
+    public executionId?: number //Только в случае status = 'INPROGRESS'
+    public resultSuccessJSON?: string
+    public resultSuccessTime?: Date
+    public resultErrorJSON?: string
+    public resultErrorTime?: Date
 
     constructor(model: AccountTask) {
         this.model = model;
+        this.readModel();
+    }
+
+    readModel() {
+        const model = this.model;
         this.task = model.task;
         this.status = model.lastStatus;
         if(this.status === ExecutionStatus.INPROGRESS){
@@ -48,7 +57,20 @@ export class AsyTaskStatusImpl implements AsyTaskStatus{
         this.resultSuccessJSON = model.lastResultSuccess;
         this.resultSuccessTime = model.lastResultSuccessTime;
         this.resultErrorTime = model.lastResultErrorTime;
+    }
 
+    getLastResult(): [AsyBalanceResult[], Date] | undefined {
+        if(this.resultErrorTime && this.resultSuccessTime){
+            if(this.resultErrorTime > this.resultSuccessTime){
+                return [this.resultError, this.resultErrorTime]
+            }else{
+                return [this.resultSuccess, this.resultSuccessTime]
+            }
+        }else if(this.resultErrorTime){
+            return [this.resultError, this.resultErrorTime]
+        }else if(this.resultSuccessTime){
+            return [this.resultSuccess, this.resultSuccessTime]
+        }
     }
 
     get resultSuccess(): AsyBalanceResult[] {
@@ -110,6 +132,11 @@ export class AsyTaskStatusImpl implements AsyTaskStatus{
             });
             return codes.map(c => new AsyCodeImpl(c));
         })();
+    }
+
+    async refresh(): Promise<void> {
+        await this.model.reload()
+        this.readModel();
     }
 }
 

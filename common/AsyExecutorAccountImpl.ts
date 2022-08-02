@@ -11,7 +11,7 @@ import {
 } from "asy-balance-core";
 
 import SingleInit from "./SingleInit";
-import {AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
+import {AsyTaskStatus, AsyTaskStatuses, AsyTaskStatusImpl} from "./AsyTaskStatus";
 import {AsyQueuedTask, AsyQueuedTaskImpl} from "./AsyQueuedTask";
 import QueuedExecution from "../models/QueuedExecution";
 import {Transaction} from "sequelize";
@@ -30,6 +30,7 @@ export type AsyExecuteParams = {
     task?: string
     outer?: object
     forceExecute?: boolean //Запускать даже если уже запущена задача
+    returnWhenLaunched?: boolean //Вернуться из функции, когда аккаунт перейдет в инпрогресс
 }
 
 export type AsyQueuedTaskPreferences = {
@@ -51,6 +52,7 @@ export interface AsyExecutorAccount {
     readonly type: AccountType
 
     execute(params?: AsyExecuteParams): Promise<AsyBalanceResult[]>;
+    startExecution(params?: AsyExecuteParams): Promise<AsyTaskStatus>;
     update(fields: AsyExecutorAccountUpdateParams): Promise<void>;
     delete(): Promise<void>;
     createQueuedTask(prefs: AsyQueuedTaskPreferences, task?: string): Promise<AsyQueuedTask>;
@@ -143,7 +145,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         return prefs ? JSON.parse(prefs) : {}
     }
 
-    public async execute(params: AsyExecuteParams = {}): Promise<AsyBalanceResult[]>{
+    private async __createExecution(params: AsyExecuteParams): Promise<Execution>{
         log.info('About to execute account ' + this.accId);
 
         const acc = await this.getAccount();
@@ -152,13 +154,14 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         const prefs = this.getPreferences();
         prefs.proxy = acc.proxy || undefined;
         prefs.__task = params.task;
+        const taskName = params.task || '';
 
         const sequelize = (await AsyBalanceExecutor.getInstance()).sequelize;
 
         let execOrNot = await sequelize.transaction({
             isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE
         }, async () => {
-            const accTask = await AccountTask.findOne({where: {accountId: acc.id, task: params.task || ''}});
+            const accTask = await AccountTask.findOne({where: {accountId: acc.id, task: taskName}});
             if (accTask?.lastStatus === ExecutionStatus.INPROGRESS)
                 log.info(`Account ${acc.id} (${prov.id}, task: ${params.task}) is already INPROGRESS`);
 
@@ -176,13 +179,29 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         });
 
         if(!execOrNot)
-            return [{error: true, message: "Task is already in progress"}];
+            throw new Error("Task is already in progress");
 
-        const exec: Execution = execOrNot;
+        return execOrNot;
+    }
+
+    public async startExecution(params: AsyExecuteParams = {}): Promise<AsyTaskStatus>{
+        const exec = await this.__createExecution(params);
+        this.__executeProvider(params, exec).catch(e => log.error(e));
+
+        const task = await AccountTask.findOne({where: {accountId: exec.accountId, task: exec.task || ''}});
+        return new AsyTaskStatusImpl(task!);
+    }
+
+    private async __executeProvider(params: AsyExecuteParams, exec: Execution): Promise<AsyBalanceResult[]>{
+        const acc = await this.getAccount();
+        const prov = await this.provider;
+
         let stimpl = new AsyBalanceDBStorageImpl(exec, acc);
 
         log.info('Starting account ' + this.accId + '(task: ' + params.task + ') provider ' + prov.textId);
         let result: AsyBalanceResult[] = [];
+
+        const prefs = exec.getPrefs();
 
         try {
             result = await prov.provBundle.execute({
@@ -219,6 +238,12 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         await exec.reload();
 
         return JSON.parse(exec.result);
+
+    }
+
+    public async execute(params: AsyExecuteParams = {}): Promise<AsyBalanceResult[]>{
+        const exec = await this.__createExecution(params);
+        return this.__executeProvider(params, exec);
     }
 
     public async update(fields: AsyExecutorAccountUpdateParams): Promise<void> {

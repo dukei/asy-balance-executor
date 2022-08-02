@@ -52,7 +52,7 @@ export class DoubleCheckLock{
                 try {
                     //log.info("Waiting for lock " + name)
                     await this.locks[name]
-                } catch (e) {
+                } catch(e: any) {
                 } finally {
                     delete this.locks[name]
                 }
