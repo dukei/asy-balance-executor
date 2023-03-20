@@ -27,7 +27,7 @@
     "asy-balance-core": "https://github.com/dukei/asy-balance-core.git#master",
     "cls-hooked": "^4.2.2",
     "lodash": "^4.17.15",
-    "log4js": "^6.2.1",
+    "log4js": "^6.4.0",
     "mariadb": "^2.4.0",
     "mysql2": "^2.1.0",
     "reflect-metadata": "^0.1.13",
