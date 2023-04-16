@@ -20,11 +20,15 @@ type DeferredCode = {
     promise?: Promise<string>
 }
 
+export type AsyBalanceDBStorageConfig = {
+    tracing?: boolean
+}
+
 export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageApi, AsyBalanceInnerTraceApi, AsyBalanceInnerResultApi, AsyBalanceInnerRetrieveApi{
     private acc: SingleInit<Account>;
     private static codePromises: {[id: string]: DeferredCode} = {};
 
-    constructor(private exec: Execution, acc?: Account){
+    constructor(private config: AsyBalanceDBStorageConfig, private exec: Execution, acc?: Account){
         this.acc = new SingleInit<Account>({value: acc});
     }
 
@@ -123,7 +127,8 @@ export default class AsyBalanceDBStorageImpl implements AsyBalanceInnerStorageAp
 
     async trace(msg: string, callee: string): Promise<StringCallResponse<void>> {
         const message = (callee ? `[${callee}] ` : '') + msg;
-        console.log("acc" + this.exec.accountId + " (" + this.exec.task + "): " + message);
+        if(this.config.tracing)
+            console.log("acc" + this.exec.accountId + " (" + this.exec.task + "): " + message);
 
         let elog = ExecutionLog.build({
             content: message,

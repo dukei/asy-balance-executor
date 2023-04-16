@@ -30,7 +30,7 @@ const DEAD_TASK_RESET_TIMEOUT = 180*1000;
 
 export default class AsyBalanceExecutor{
     private static instance: SingleInit<AsyBalanceExecutor>;
-    private static config: AsyBalanceExecutorConfig;
+    public static config: AsyBalanceExecutorConfig;
 
     public readonly sequelize: Sequelize;
 

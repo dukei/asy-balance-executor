@@ -196,7 +196,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         const acc = await this.getAccount();
         const prov = await this.provider;
 
-        let stimpl = new AsyBalanceDBStorageImpl(exec, acc);
+        let stimpl = new AsyBalanceDBStorageImpl({tracing: !!AsyBalanceExecutor.config.db_logging}, exec, acc);
 
         log.info('Starting account ' + this.accId + '(task: ' + params.task + ') provider ' + prov.textId);
         let result: AsyBalanceResult[] = [];
