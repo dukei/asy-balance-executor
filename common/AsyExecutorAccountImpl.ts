@@ -28,6 +28,7 @@ export type AsyExecutorAccountUpdateParams = {
 
 export type AsyExecuteParams = {
     task?: string
+    taskParams?: any
     outer?: object
     forceExecute?: boolean //Запускать даже если уже запущена задача
     returnWhenLaunched?: boolean //Вернуться из функции, когда аккаунт перейдет в инпрогресс
@@ -154,6 +155,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
         const prefs = this.getPreferences();
         prefs.proxy = acc.proxy || undefined;
         prefs.__task = params.task;
+        prefs.__taskParams = params.taskParams;
         const taskName = params.task || '';
 
         const sequelize = (await AsyBalanceExecutor.getInstance()).sequelize;
@@ -198,7 +200,7 @@ export class AsyExecutorAccountImpl implements AsyExecutorAccount {
 
         let stimpl = new AsyBalanceDBStorageImpl({tracing: !!AsyBalanceExecutor.config.db_logging}, exec, acc);
 
-        log.info('Starting account ' + this.accId + '(task: ' + params.task + ') provider ' + prov.textId);
+        log.info(`Starting account ${this.accId} (task: ${params.task}, params: ${JSON.stringify(params.taskParams)}) provider ${prov.textId}`);
         let result: AsyBalanceResult[] = [];
 
         const prefs = exec.getPrefs();
